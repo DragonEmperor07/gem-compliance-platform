@@ -19,6 +19,7 @@ frontend/.next/
 # IDE
 .vscode/
 backend/.idea/
+.idea/
 
 # Python tooling
 .pytest_cache/
