@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -35,6 +35,9 @@ class Requirement(BaseModel):
 
 class RequirementsPayload(BaseModel):
     requirements: list[Requirement]
+    extraction_method: Literal["ollama", "heuristic", "officer_reviewed", "provided"] = "provided"
+    fallback_reason: str | None = None
+    warnings: list[str] = Field(default_factory=list)
 
 
 class ChecklistDocument(BaseModel):

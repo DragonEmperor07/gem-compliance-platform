@@ -14,11 +14,21 @@ import json
 import logging
 import re
 import shutil
+import stat
 import zipfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import pymupdf
+
+from app.config import (
+    MAX_ARCHIVE_ENTRIES,
+    MAX_ARCHIVE_MEMBER_BYTES,
+    MAX_ARCHIVE_UNCOMPRESSED_BYTES,
+    MAX_COMPRESSION_RATIO,
+    MAX_NESTED_ZIP_DEPTH,
+    MAX_PDF_PAGES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +40,6 @@ DOCX_SUFFIXES = {".docx"}
 SUPPORTED = PYMUPDF_SUFFIXES | TEXT_SUFFIXES | DOCX_SUFFIXES
 
 SKIP_PARTS = {"__MACOSX", ".DS_Store", "Thumbs.db"}
-MAX_NESTED_DEPTH = 3
-
-
 @dataclass
 class ExtractedDocument:
     source_file: str
@@ -41,14 +48,28 @@ class ExtractedDocument:
     note: str = ""
 
 
+@dataclass
+class ArchiveBudget:
+    entries: int = 0
+    uncompressed_bytes: int = 0
+
+
 def is_noise(relative: Path) -> bool:
     if any(part in SKIP_PARTS for part in relative.parts):
         return True
     return any(part.startswith(".") for part in relative.parts)
 
 
-def safe_extract(zip_path: Path, dest: Path, depth: int = 0) -> None:
-    """Extract an archive, refusing entries that escape the destination."""
+def safe_extract(
+    zip_path: Path,
+    dest: Path,
+    depth: int = 0,
+    budget: ArchiveBudget | None = None,
+) -> None:
+    """Extract a bounded archive while refusing unsafe filesystem entries."""
+    if depth > MAX_NESTED_ZIP_DEPTH:
+        raise ValueError(f"nested ZIP depth exceeds {MAX_NESTED_ZIP_DEPTH}")
+    budget = budget or ArchiveBudget()
     dest.mkdir(parents=True, exist_ok=True)
     resolved = dest.resolve()
 
@@ -59,6 +80,22 @@ def safe_extract(zip_path: Path, dest: Path, depth: int = 0) -> None:
 
             if member.is_dir() or relative.is_absolute() or is_noise(relative):
                 continue
+
+            budget.entries += 1
+            budget.uncompressed_bytes += member.file_size
+            if budget.entries > MAX_ARCHIVE_ENTRIES:
+                raise ValueError(f"archive contains more than {MAX_ARCHIVE_ENTRIES} files")
+            if member.file_size > MAX_ARCHIVE_MEMBER_BYTES:
+                raise ValueError(f"archive member exceeds size limit: {member.filename}")
+            if budget.uncompressed_bytes > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
+                raise ValueError("archive exceeds the total uncompressed-size limit")
+            if member.flag_bits & 0x1:
+                raise ValueError(f"encrypted archive member is not supported: {member.filename}")
+            if stat.S_ISLNK(member.external_attr >> 16):
+                raise ValueError(f"symbolic links are not allowed in archives: {member.filename}")
+            compressed = max(member.compress_size, 1)
+            if member.file_size / compressed > MAX_COMPRESSION_RATIO:
+                raise ValueError(f"suspicious compression ratio for archive member: {member.filename}")
 
             target = (dest / relative).resolve()
 
@@ -71,13 +108,10 @@ def safe_extract(zip_path: Path, dest: Path, depth: int = 0) -> None:
             with archive.open(member) as src, open(target, "wb") as out:
                 shutil.copyfileobj(src, out)
 
-    if depth >= MAX_NESTED_DEPTH:
-        return
-
     # Bidder submissions are routinely a zip of zips.
     for nested in sorted(dest.rglob("*.zip")):
         try:
-            safe_extract(nested, nested.with_suffix(""), depth + 1)
+            safe_extract(nested, nested.with_suffix(""), depth + 1, budget)
             nested.unlink()
         except zipfile.BadZipFile:
             logger.warning("bad nested archive %s", nested)
@@ -88,6 +122,8 @@ def read_pymupdf(path: Path, use_ocr: bool) -> tuple[str, str, str]:
     parts, ocr_used, note = [], False, ""
 
     with pymupdf.open(path) as doc:
+        if len(doc) > MAX_PDF_PAGES:
+            raise ValueError(f"PDF exceeds the {MAX_PDF_PAGES}-page limit")
         for page in doc:
             text = page.get_text("text", sort=True)
 
@@ -115,6 +151,9 @@ def read_docx(path: Path) -> tuple[str, str, str]:
     with zipfile.ZipFile(path) as archive:
         if "word/document.xml" not in archive.namelist():
             return "", "error", "not an OOXML word document"
+        document_info = archive.getinfo("word/document.xml")
+        if document_info.file_size > MAX_ARCHIVE_MEMBER_BYTES:
+            return "", "error", "word document body exceeds size limit"
         xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
 
     text = re.sub(r"<[^>]+>", "", xml.replace("</w:p>", "\n")).strip()

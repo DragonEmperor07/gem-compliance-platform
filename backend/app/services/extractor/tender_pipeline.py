@@ -2,6 +2,8 @@
 import re
 import pymupdf
 
+from app.config import MAX_PDF_PAGES
+
 
 OBLIGATION = [
     "shall",
@@ -82,6 +84,9 @@ class TenderPipeline:
 
     def score_pdf_pages(self):
         doc = pymupdf.open(self.pdf_path)
+        if len(doc) > MAX_PDF_PAGES:
+            doc.close()
+            raise ValueError(f"tender PDF exceeds the {MAX_PDF_PAGES}-page limit")
 
         obligation_patterns = [
             self.make_pattern(term)

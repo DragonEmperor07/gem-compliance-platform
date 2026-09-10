@@ -18,9 +18,13 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
+import httpx
 import pymupdf
+from fastapi.testclient import TestClient
 
+from app.main import app
 from .bidder_zip import ExtractedDocument, ingest_zip, read_document, safe_extract, write_documents
 from .checklist_build import build_checklist, canonical_id, label_for, slugify
 from .compliance_score import document_states, score_report
@@ -30,6 +34,7 @@ from .match_engine import alias_hits, classify_against_checklist, filename_alias
 from .real_validation import validate_real_submission
 from .req import RequirementDraft, RequirementExtraction, SubRequirementDraft
 from .scenario_json import evaluate_scenario
+from .api_pipeline import requirements_from_context
 
 # Unreadable-file warnings are expected here; several tests assert on them.
 logging.disable(logging.WARNING)
@@ -173,6 +178,61 @@ class TestChecklistBuild(unittest.TestCase):
         self.assertEqual(len(load_checklist(path)["documents"]), 1)
 
 
+class TestExtractionDiagnostics(unittest.TestCase):
+
+    def test_known_model_failure_reports_heuristic_fallback(self):
+        with patch(
+            "app.services.extractor.api_pipeline.extract_requirements",
+            side_effect=httpx.ConnectError("model unavailable"),
+        ):
+            result = requirements_from_context(
+                "===== PAGE 1 =====\nBidder shall submit GST registration certificate."
+            )
+        self.assertEqual(result.extraction_method, "heuristic")
+        self.assertEqual(result.fallback_reason, "ConnectError")
+        self.assertTrue(result.warnings)
+        self.assertEqual(result.requirements[0].name, "GST registration")
+
+    def test_unexpected_extraction_bug_is_not_silently_hidden(self):
+        with patch(
+            "app.services.extractor.api_pipeline.extract_requirements",
+            side_effect=RuntimeError("programming defect"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "programming defect"):
+                requirements_from_context("Bidder shall submit GST registration certificate.")
+
+
+class TestUploadGuards(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.client = TestClient(app)
+
+    def test_fake_pdf_is_rejected_before_parsing(self):
+        response = self.client.post(
+            "/api/compliance/tenders/context",
+            files={"tender": ("tender.pdf", b"not a pdf", "application/pdf")},
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("PDF signature", response.json()["detail"])
+
+    def test_fake_zip_is_rejected_before_extraction(self):
+        response = self.client.post(
+            "/api/compliance/bidders/extract",
+            files={"submission": ("bidder.zip", b"not a zip", "application/zip")},
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("valid ZIP", response.json()["detail"])
+
+    def test_oversized_upload_returns_413(self):
+        with patch("app.api.routes.compliance.MAX_TENDER_BYTES", 4):
+            response = self.client.post(
+                "/api/compliance/tenders/context",
+                files={"tender": ("tender.pdf", b"%PDF-too-large", "application/pdf")},
+            )
+        self.assertEqual(response.status_code, 413)
+
+
 # ---------------------------------------------------------------- ingestion
 
 class TestBidderZip(TempDirCase):
@@ -191,6 +251,32 @@ class TestBidderZip(TempDirCase):
 
         self.assertFalse((self.tmp / "escaped.txt").exists())
         self.assertEqual(list(dest.rglob("*.txt")), [])
+
+    def test_archive_entry_limit_is_enforced(self):
+        archive = self.build_zip({"one.txt": b"one", "two.txt": b"two"})
+        with patch("app.services.extractor.bidder_zip.MAX_ARCHIVE_ENTRIES", 1):
+            with self.assertRaisesRegex(ValueError, "more than 1 files"):
+                safe_extract(archive, self.tmp / "limited")
+
+    def test_suspicious_compression_ratio_is_rejected(self):
+        archive = self.tmp / "compressed.zip"
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as output:
+            output.writestr("large.txt", b"0" * 20_000)
+        with patch("app.services.extractor.bidder_zip.MAX_COMPRESSION_RATIO", 2):
+            with self.assertRaisesRegex(ValueError, "compression ratio"):
+                safe_extract(archive, self.tmp / "ratio")
+
+    def test_pdf_page_limit_is_enforced(self):
+        pdf = pymupdf.open()
+        pdf.new_page()
+        pdf.new_page()
+        path = self.tmp / "long.pdf"
+        pdf.save(path)
+        pdf.close()
+        with patch("app.services.extractor.bidder_zip.MAX_PDF_PAGES", 1):
+            _, status, note = read_document(path, use_ocr=False)
+        self.assertEqual(status, "error")
+        self.assertIn("page limit", note)
 
     def test_nested_archive_is_unpacked(self):
         inner = io.BytesIO()

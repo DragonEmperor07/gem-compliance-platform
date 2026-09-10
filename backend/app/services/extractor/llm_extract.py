@@ -1,10 +1,11 @@
 from ollama import chat
+from app.config import REQUIREMENT_MODEL
 from .req import RequirementExtraction
 
 
 def extract_requirements(
     context: str,
-    model: str = "qwen3:8b",
+    model: str = REQUIREMENT_MODEL,
 ) -> RequirementExtraction:
 
     response = chat(

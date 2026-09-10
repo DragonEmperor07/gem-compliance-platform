@@ -10,6 +10,11 @@ import tempfile
 import re
 from pathlib import Path
 
+import httpx
+from ollama import ResponseError
+from pydantic import ValidationError
+
+from app.config import REQUIREMENT_MODEL
 from app.schemas.compliance import ChecklistPayload, Requirement, RequirementsPayload, SubRequirement
 
 from .bidder_zip import ExtractedDocument, ingest_zip
@@ -172,15 +177,25 @@ def _heuristic_requirements(context: str) -> RequirementsPayload:
     return RequirementsPayload(requirements=requirements)
 
 
-def requirements_from_context(context: str, model: str = "qwen3:8b") -> RequirementsPayload:
+def requirements_from_context(context: str, model: str = REQUIREMENT_MODEL) -> RequirementsPayload:
     try:
         extraction = extract_requirements(context, model)
-        return RequirementsPayload.model_validate(extraction.model_dump())
-    except Exception:
-        return _heuristic_requirements(context)
+        return RequirementsPayload(
+            requirements=extraction.requirements,
+            extraction_method="ollama",
+        )
+    except (httpx.HTTPError, ResponseError, ValidationError, ConnectionError, TimeoutError) as exc:
+        fallback = _heuristic_requirements(context)
+        return fallback.model_copy(update={
+            "extraction_method": "heuristic",
+            "fallback_reason": type(exc).__name__,
+            "warnings": [
+                "The configured requirement model was unavailable or returned invalid structured output; conservative heuristic extraction was used."
+            ],
+        })
 
 
-def requirements_from_tender(pdf_bytes: bytes, model: str = "qwen3:8b") -> RequirementsPayload:
+def requirements_from_tender(pdf_bytes: bytes, model: str = REQUIREMENT_MODEL) -> RequirementsPayload:
     return requirements_from_context(tender_context(pdf_bytes)["context"], model)
 
 
@@ -220,11 +235,13 @@ def run_pipeline(
     *,
     requirements: RequirementsPayload | None = None,
     checklist_name: str = "Tender document checklist",
-    model: str = "qwen3:8b",
+    model: str = REQUIREMENT_MODEL,
     use_ocr: bool = True,
 ) -> dict:
     tender = tender_context(tender_bytes)
     extraction = requirements or requirements_from_context(tender["context"], model)
+    if requirements is not None and requirements.extraction_method == "provided":
+        extraction = requirements.model_copy(update={"extraction_method": "officer_reviewed"})
     checklist_data = checklist_from_requirements(extraction, checklist_name)
     documents = extract_submission(submission_bytes, use_ocr)
     report = match_submission(ChecklistPayload.model_validate(checklist_data), documents)
