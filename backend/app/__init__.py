@@ -1,0 +1,1 @@
+"""GeM compliance backend application."""
