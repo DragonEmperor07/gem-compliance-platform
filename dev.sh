@@ -9,8 +9,8 @@ if [[ ! -x "$backend_python" ]]; then
   exit 1
 fi
 
-if [[ ! -d "$project_root/frontend/node_modules" ]]; then
-  echo "Frontend dependencies are missing. Run: cd frontend && npm install" >&2
+if [[ ! -d "$project_root/frontend-temp/node_modules" ]]; then
+  echo "Frontend dependencies are missing. Run: cd frontend-temp && npm install" >&2
   exit 1
 fi
 
@@ -29,7 +29,7 @@ backend_pid=$!
 
 echo "Starting website at http://127.0.0.1:4321/app/extract"
 (
-  cd "$project_root/frontend"
+  cd "$project_root/frontend-temp"
   npm run dev -- --host 127.0.0.1 --port 4321
 ) &
 frontend_pid=$!

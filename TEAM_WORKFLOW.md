@@ -74,7 +74,7 @@ gem-compliance-platform/
 │           ├── criterion_engine.py     # shared decision and score engine
 │           ├── scenario_json.py        # structured JSON scenario adapter
 │           └── test_pipeline.py        # backend unit/integration tests
-└── frontend/
+└── frontend-temp/
     ├── package.json                    # Astro scripts and dependencies
     ├── .env.example                    # backend URL example
     └── src/
@@ -113,7 +113,7 @@ cd /path/to/gem-compliance-platform
 python3 -m venv backend/.venv
 backend/.venv/bin/pip install -r backend/requirements.txt
 
-cd frontend
+cd frontend-temp
 npm install
 cp .env.example .env
 cd ..
@@ -144,7 +144,7 @@ PYTHONPATH=backend backend/.venv/bin/python -m unittest -v \
 Build the frontend:
 
 ```bash
-cd frontend
+cd frontend-temp
 npm run build
 ```
 
