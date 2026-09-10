@@ -1,0 +1,69 @@
+<div class="panel" data-live-analysis hidden style="margin-bottom:14px;">
+  <div class="panel-head">
+    <div>
+      <h2>Latest live analysis</h2>
+      <span class="note" data-live-time></span>
+    </div>
+    <button class="btn-sm" type="button" data-live-download>Download JSON report</button>
+  </div>
+  <div class="panel-body" data-live-summary></div>
+  <div class="panel-body flush" data-live-missing></div>
+</div>
+
+<script is:inline>
+  (function () {
+    var key = 'pramaan.liveAnalysis';
+    var raw;
+    try { raw = window.localStorage.getItem(key); } catch (_) { return; }
+    if (!raw) return;
+    var result;
+    try { result = JSON.parse(raw); } catch (_) { return; }
+    var report = result.report || {};
+    var score = report.compliance || {};
+    document.querySelectorAll('[data-live-analysis]').forEach(function (panel) {
+      panel.hidden = false;
+      var time = panel.querySelector('[data-live-time]');
+      var summary = panel.querySelector('[data-live-summary]');
+      var missing = panel.querySelector('[data-live-missing]');
+      if (time) time.textContent = report.generated_at ? 'Generated ' + new Date(report.generated_at).toLocaleString() : 'Current browser session';
+      if (summary) {
+        [
+          ['Compliance score', (score.percentage || 0) + '%'],
+          ['Status', report.status || 'unknown'],
+          ['Evidence found', (report.counts || {}).present || 0],
+          ['Required evidence missing', (report.counts || {}).missing_required || 0],
+        ].forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'fld';
+          var label = document.createElement('span'); label.className = 'k'; label.textContent = item[0];
+          var value = document.createElement('span'); value.className = 'v'; value.textContent = item[1];
+          row.appendChild(label); row.appendChild(value); summary.appendChild(row);
+        });
+      }
+      if (missing) {
+        var items = report.missing || [];
+        if (!items.length) {
+          missing.textContent = 'All required tender evidence was found in the bidder submission.';
+        } else {
+          items.slice(0, 6).forEach(function (item) {
+            var row = document.createElement('div'); row.className = 'xrow';
+            var detail = document.createElement('div');
+            var kind = document.createElement('div'); kind.className = 'k'; kind.textContent = item.required ? 'Required evidence' : 'Optional evidence';
+            var label = document.createElement('div'); label.className = 'v'; label.textContent = item.label;
+            detail.appendChild(kind); detail.appendChild(label);
+            var badge = document.createElement('span'); badge.className = 'bdg alert'; badge.textContent = item.possible_match ? 'Review' : 'Missing';
+            row.appendChild(detail); row.appendChild(badge); missing.appendChild(row);
+          });
+        }
+      }
+    });
+    document.querySelectorAll('[data-live-download]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob); link.download = 'pramaan-compliance-report.json';
+        link.click(); URL.revokeObjectURL(link.href);
+      });
+    });
+  })();
+</script>

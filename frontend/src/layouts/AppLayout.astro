@@ -1,0 +1,795 @@
+---
+import '../styles/global.css';
+import '../styles/app.css';
+import { officer } from '../data/mock';
+import { passages, suggested } from '../data/rag';
+
+export interface Props {
+  title: string;
+  active: 'overview' | 'tenders' | 'extract' | 'reports' | 'portals' | 'audit';
+  crumbs?: { label: string; href?: string }[];
+}
+
+const { title, active, crumbs = [] } = Astro.props;
+const base = import.meta.env.BASE_URL;
+
+const nav = [
+  {
+    key: 'overview', label: 'Overview', href: `${base}app`,
+    icon: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+    count: null, hot: false,
+  },
+  {
+    key: 'tenders', label: 'Tenders', href: `${base}app/tender`,
+    icon: '<path d="M4.5 5.5A1.5 1.5 0 0 1 6 4h8l5.5 5.5V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19Z"/><path d="M14 4v5.5h5.5"/><path d="M8.5 13.5h7M8.5 16.5h4.5"/>',
+    count: '4', hot: false,
+  },
+  {
+    key: 'extract', label: 'Extract', href: `${base}app/extract`,
+    icon: '<path d="M12 15.5V4.2"/><path d="m7.8 8.4 4.2-4.2 4.2 4.2"/><path d="M4.5 14.5v3.6A1.9 1.9 0 0 0 6.4 20h11.2a1.9 1.9 0 0 0 1.9-1.9v-3.6"/>',
+    count: '3', hot: false,
+  },
+  {
+    key: 'reports', label: 'Reports', href: `${base}app/report`,
+    icon: '<path d="M5.5 4.9A1.4 1.4 0 0 1 6.9 3.5h6.2L18.5 9v10.1a1.4 1.4 0 0 1-1.4 1.4H6.9a1.4 1.4 0 0 1-1.4-1.4Z"/><path d="M13 3.6V9h5.4"/><path d="M9 13.5v3.2M12 11.6v5.1M15 14.7v2"/>',
+    count: null, hot: false,
+  },
+  {
+    key: 'audit', label: 'Audit', href: `${base}app/audit`,
+    icon: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.2V12l3.2 2"/>',
+    count: null, hot: false,
+  },
+  {
+    key: 'portals', label: 'Portals', href: `${base}app/portals`,
+    icon: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="3.6" r="1.7"/><circle cx="12" cy="20.4" r="1.7"/><circle cx="3.6" cy="12" r="1.7"/><circle cx="20.4" cy="12" r="1.7"/><path d="M12 5.3v3.7M12 15v3.7M5.3 12H9M15 12h3.7"/>',
+    count: '1', hot: true,
+  },
+];
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#16233D">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2316233D'/%3E%3Cpath d='M16 6 8.5 9.2v5.6c0 4.3 3 7.9 7.5 8.9 4.5-1 7.5-4.6 7.5-8.9V9.2L16 6Z' fill='none' stroke='%23F7F9F5' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='m12.6 15.6 2.2 2.4 4.6-4.8' fill='none' stroke='%231B7A5A' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <div class="app">
+    <header class="appbar" id="appbar">
+      <a href={base} class="ab-brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F7F9F5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 6v6c0 4.6 3.2 8.4 8 9.5 4.8-1.1 8-4.9 8-9.5V6l-8-3.5Z"/><path d="m9 12 2.2 2.4L15.5 10"/></svg>
+        </span>
+        Pramaan
+        <span class="tag">GeM Compliance</span>
+      </a>
+
+      <nav class="ab-nav" id="abNav" aria-label="Primary">
+        <span class="ab-glide" aria-hidden="true"></span>
+        {nav.map((it) => (
+          <a href={it.href} class={active === it.key ? 'on' : ''}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" set:html={it.icon}></svg>
+            {it.label}
+            {it.count && <span class={`count${it.hot ? ' hot' : ''}`}>{it.count}</span>}
+          </a>
+        ))}
+      </nav>
+
+      <div class="ab-actions">
+        <button class="icon-btn" type="button" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 5-2 6.5-2 6.5h16s-2-1.5-2-6.5Z"/><path d="M13.7 19a2 2 0 0 1-3.4 0"/></svg>
+          <span class="dot" aria-hidden="true"></span>
+        </button>
+        <button class="icon-btn" type="button" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 4.5v2M12 17.5v2M19.4 12h-2M6.6 12h-2M17.2 6.8l-1.4 1.4M8.2 15.8l-1.4 1.4M17.2 17.2l-1.4-1.4M8.2 8.2 6.8 6.8"/></svg>
+        </button>
+        <span class="ab-div" aria-hidden="true"></span>
+        <button class="ab-avatar" type="button" aria-label={`${officer.name} — ${officer.role}`} title={`${officer.name} · ${officer.role}`}>
+          {officer.initials}
+        </button>
+        <button class="icon-btn ab-toggle" id="navToggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="abMenu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="ab-menu" id="abMenu">
+      {nav.map((it) => (
+        <a href={it.href} class={active === it.key ? 'on' : ''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" set:html={it.icon}></svg>
+          {it.label}
+          {it.count && <span class={`count${it.hot ? ' hot' : ''}`}>{it.count}</span>}
+        </a>
+      ))}
+    </div>
+
+    <div class="ab-sub">
+      <nav class="crumb" aria-label="Breadcrumb">
+        <a href={`${base}app`}>Console</a>
+        {crumbs.map((c) => (
+          <>
+            <span class="sep" aria-hidden="true">/</span>
+            {c.href ? <a href={c.href}>{c.label}</a> : <span class="now">{c.label}</span>}
+          </>
+        ))}
+      </nav>
+
+      <div class="top-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <input type="search" placeholder="Search bidders, GSTIN, tender ref…" aria-label="Search" />
+        <kbd>/</kbd>
+      </div>
+    </div>
+
+    <main class="content" id="main" tabindex="-1">
+      <slot />
+    </main>
+  </div>
+
+  <!-- ============ assistant: retrieval over the verification record ============ -->
+  <button class="ast-launch" id="astOpen" type="button" aria-haspopup="dialog" aria-controls="ast" aria-expanded="false">
+    <span class="glyph" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="10.8" cy="10.8" r="6.6"/>
+        <path d="m15.6 15.6 4.2 4.2"/>
+        <path d="M8.3 9.3h5M8.3 12.1h3.2"/>
+      </svg>
+    </span>
+    <span class="txt">Ask Pramaan</span>
+    <kbd>Ctrl K</kbd>
+  </button>
+
+  <section class="ast" id="ast" role="dialog" aria-label="Ask Pramaan — assistant over the verification record" data-base={base}>
+    <header class="ast-head">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="10.8" cy="10.8" r="6.6"/><path d="m15.6 15.6 4.2 4.2"/><path d="M8.3 9.3h5M8.3 12.1h3.2"/>
+        </svg>
+      </span>
+      <div>
+        <div class="t">Ask Pramaan</div>
+        <div class="s">Answers from this record only</div>
+      </div>
+      <button class="x" id="astClose" type="button" aria-label="Close assistant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg>
+      </button>
+    </header>
+
+    <div class="ast-body" id="astBody" role="log" aria-live="polite">
+      <div class="msg bot">
+        <div class="b">
+          Ask about a bidder, a check, a tender clause or how a source was reached. Every answer is
+          retrieved from the record on these screens and cites what it used — if the record does not
+          cover it, I will say so rather than guess.
+        </div>
+      </div>
+      <div class="ast-sugs" id="astSugs">
+        {suggested.map((s) => <button class="sug" type="button">{s}</button>)}
+      </div>
+    </div>
+
+    <div class="ast-foot">
+      <form class="ast-input" id="astForm">
+        <textarea id="astText" rows="1" placeholder="Ask about a bidder, a clause, a portal…" aria-label="Ask the assistant"></textarea>
+        <button class="ast-send" type="submit" aria-label="Send question">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12.5 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+      <p class="ast-note">Retrieval over {passages.length} passages · demo data · no live portal is queried</p>
+    </div>
+  </section>
+
+  <script type="application/json" id="astCorpus" set:html={JSON.stringify(passages)}></script>
+
+  <div class="bulkbar" id="bulkbar" role="status" aria-live="polite">
+    <span class="n"><b id="bulkCount">0</b> selected</span>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button">Assign reviewer</button>
+    <button type="button">Export selected</button>
+    <button type="button" class="ghost" id="bulkClear">Clear</button>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var btn = document.getElementById('navToggle');
+      var menu = document.getElementById('abMenu');
+
+      if (btn && menu) {
+        function set(open) {
+          menu.classList.toggle('open', open);
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        btn.addEventListener('click', function () { set(!menu.classList.contains('open')); });
+        menu.addEventListener('click', function (e) { if (e.target.closest('a')) set(false); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
+        window.addEventListener('resize', function () { if (window.innerWidth > 1120) set(false); });
+      }
+
+      // one highlight that glides between nav items
+      var abNav = document.getElementById('abNav');
+      var glide = abNav && abNav.querySelector('.ab-glide');
+      if (abNav && glide) {
+        var moveTo = function (el) {
+          glide.style.width = el.offsetWidth + 'px';
+          glide.style.transform = 'translate(' + el.offsetLeft + 'px, -50%)';
+        };
+        abNav.addEventListener('mouseover', function (e) {
+          var a = e.target.closest ? e.target.closest('a') : null;
+          if (!a || !abNav.contains(a)) return;
+          moveTo(a);
+          abNav.classList.add('glide-on');
+        });
+        abNav.addEventListener('mouseleave', function () {
+          abNav.classList.remove('glide-on');
+        });
+        abNav.addEventListener('focusin', function (e) {
+          if (e.target.tagName === 'A') { moveTo(e.target); abNav.classList.add('glide-on'); }
+        });
+        abNav.addEventListener('focusout', function () { abNav.classList.remove('glide-on'); });
+      }
+
+      // deepen the pill's shadow once the page moves under it
+      var bar = document.getElementById('appbar');
+      if (bar) {
+        var onScroll = function () { bar.classList.toggle('scrolled', window.scrollY > 6); };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+      }
+
+      // row selection -> bulk action bar
+      var rows = document.querySelectorAll('input[data-row]');
+      var all = document.querySelector('input[data-selall]');
+      var bulk = document.getElementById('bulkbar');
+      var count = document.getElementById('bulkCount');
+
+      function sync() {
+        if (!bulk || !count) return;
+        var n = 0;
+        rows.forEach(function (r) {
+          var tr = r.closest('.tr');
+          if (tr) tr.classList.toggle('sel', r.checked);
+          if (r.checked) n++;
+        });
+        count.textContent = n;
+        bulk.classList.toggle('on', n > 0);
+        if (all) {
+          all.checked = n > 0 && n === rows.length;
+          all.indeterminate = n > 0 && n < rows.length;
+        }
+      }
+      rows.forEach(function (r) { r.addEventListener('change', sync); });
+      if (all) {
+        all.addEventListener('change', function () {
+          rows.forEach(function (r) { r.checked = all.checked; });
+          sync();
+        });
+      }
+      var clear = document.getElementById('bulkClear');
+      if (clear) {
+        clear.addEventListener('click', function () {
+          rows.forEach(function (r) { r.checked = false; });
+          sync();
+        });
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== '/' || e.ctrlKey || e.metaKey) return;
+        var t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+        var input = document.querySelector('.top-search input');
+        if (input) { e.preventDefault(); input.focus(); }
+      });
+    })();
+  </script>
+
+  <script is:inline>
+    /* ------------------------------------------------------------------
+       Assistant — retrieval over the verification record.
+
+       This is a real retrieval system, small enough to run in the page:
+       the corpus is indexed once (term frequency + document frequency),
+       the question is scored against it with BM25-style weighting plus
+       phrase and keyword boosts, and the answer is assembled only from
+       the passages that came back — each one cited. When nothing scores
+       above the floor it says so and offers the nearest passages, which
+       is the honest behaviour for a compliance tool.
+       ------------------------------------------------------------------ */
+    (function () {
+      var panel = document.getElementById('ast');
+      var openBtn = document.getElementById('astOpen');
+      var closeBtn = document.getElementById('astClose');
+      var body = document.getElementById('astBody');
+      var form = document.getElementById('astForm');
+      var input = document.getElementById('astText');
+      var sugs = document.getElementById('astSugs');
+      var corpusEl = document.getElementById('astCorpus');
+      if (!panel || !openBtn || !body || !form || !input || !corpusEl) return;
+
+      var BASE = panel.getAttribute('data-base') || '/';
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var DOCS = [];
+      try { DOCS = JSON.parse(corpusEl.textContent) || []; } catch (e) { DOCS = []; }
+      if (!DOCS.length) return;
+
+      /* ---------------- tokenising ---------------- */
+      var STOP = {};
+      ('a an the is are was were be been being do does did doing of in on at to for from by with about ' +
+       'and or but if then than that this these those it its as i we you they he she them us our your ' +
+       'me my can could should would will shall may might must have has had not no nor so such there ' +
+       'here into over under again more most other some any each few own same too very just also ' +
+       'what which who whom whose how why when where tell show give please').split(' ')
+        .forEach(function (w) { STOP[w] = 1; });
+
+      function stem(w) {
+        if (w.length > 4) {
+          if (/ies$/.test(w)) return w.slice(0, -3) + 'y';
+          if (/(ses|xes|ches|shes)$/.test(w)) return w.slice(0, -2);
+          if (/ss$/.test(w)) return w;
+          if (/s$/.test(w)) return w.slice(0, -1);
+          if (/ing$/.test(w)) return w.slice(0, -3);
+          if (/ed$/.test(w)) return w.slice(0, -2);
+        }
+        return w;
+      }
+
+      function toks(s) {
+        var raw = String(s || '').toLowerCase().replace(/[^a-z0-9.%\/-]+/g, ' ').split(/\s+/);
+        var out = [];
+        for (var i = 0; i < raw.length; i++) {
+          var w = raw[i].replace(/^[.\-\/]+/, '').replace(/[.\-\/]+$/, '');
+          if (!w || w.length < 2 || STOP[w]) continue;
+          out.push(stem(w));
+        }
+        return out;
+      }
+
+      /* ---------------- index ---------------- */
+      var N = DOCS.length, df = {}, avg = 0;
+      var index = DOCS.map(function (d) {
+        var keys = (d.keys || []).join(' ');
+        /* title and keywords count twice — they are what the passage is "about" */
+        var blob = [d.title, d.title, d.answer, d.text, keys, keys, d.source].join(' ');
+        var t = toks(blob), tf = {}, w;
+        for (var i = 0; i < t.length; i++) tf[t[i]] = (tf[t[i]] || 0) + 1;
+        for (w in tf) if (Object.prototype.hasOwnProperty.call(tf, w)) df[w] = (df[w] || 0) + 1;
+        avg += t.length;
+        return { d: d, tf: tf, len: t.length, hay: ' ' + t.join(' ') + ' ' };
+      });
+      avg = avg / (N || 1);
+
+      function search(q) {
+        var qt = toks(q);
+        if (!qt.length) return [];
+        var ql = ' ' + String(q).toLowerCase() + ' ';
+        var out = [];
+        for (var i = 0; i < index.length; i++) {
+          var x = index[i], s = 0, hit = 0, key = 0, j;
+          for (j = 0; j < qt.length; j++) {
+            var f = x.tf[qt[j]] || 0;
+            if (!f) continue;
+            hit++;
+            var idf = Math.log(1 + (N - df[qt[j]] + 0.5) / (df[qt[j]] + 0.5));
+            s += idf * (f * 2.5) / (f + 1.5 * (0.35 + 0.65 * x.len / avg));
+          }
+          /* adjacent pair present in the passage — "local content", "clause 7.2" */
+          for (j = 0; j < qt.length - 1; j++) {
+            if (x.hay.indexOf(' ' + qt[j] + ' ' + qt[j + 1] + ' ') !== -1) s += 1.5;
+          }
+          /* a declared synonym appearing verbatim in the question */
+          var keys = x.d.keys || [];
+          for (j = 0; j < keys.length; j++) {
+            if (keys[j].length > 3 && ql.indexOf(keys[j]) !== -1) { s += 2.4; key++; }
+          }
+          if (s > 0) out.push({ p: x.d, s: s, hit: hit, key: key });
+        }
+        out.sort(function (a, b) { return b.s - a.s; });
+        return out;
+      }
+
+      /* ---------------- rendering ---------------- */
+      function node(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text != null) n.textContent = text;
+        return n;
+      }
+
+      function scrollDown() { body.scrollTop = body.scrollHeight; }
+
+      function citeList(results) {
+        var wrap = node('div', 'cites');
+        results.forEach(function (r) {
+          var a = document.createElement(r.p.href ? 'a' : 'span');
+          a.className = 'cite';
+          if (r.p.href) a.href = BASE + r.p.href;
+          a.appendChild(node('span', 'n', r.p.source + ' · ' + r.p.title));
+          if (r.p.href) {
+            a.insertAdjacentHTML('beforeend',
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>');
+          }
+          wrap.appendChild(a);
+        });
+        return wrap;
+      }
+
+      function typeInto(el, text, done) {
+        if (reduce) { el.textContent = text; done && done(); return; }
+        var words = text.split(' '), i = 0;
+        var step = Math.max(10, Math.min(26, 620 / words.length));
+        (function tick() {
+          el.textContent = words.slice(0, ++i).join(' ');
+          scrollDown();
+          if (i < words.length) setTimeout(tick, step);
+          else done && done();
+        })();
+      }
+
+      function botMessage(build) {
+        var m = node('div', 'msg bot');
+        var b = node('div', 'b');
+        m.appendChild(b);
+        body.appendChild(m);
+        scrollDown();
+        build(m, b);
+        return m;
+      }
+
+      function thinking() {
+        var m = node('div', 'msg bot');
+        var b = node('div', 'b');
+        b.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+        m.appendChild(b);
+        body.appendChild(m);
+        scrollDown();
+        return m;
+      }
+
+      /* ---------------- the answer ---------------- */
+      var GREET = /^\s*(hi|hey|hello|yo|namaste|thanks|thank you|ok|okay|cool|good (morning|afternoon|evening))\b/i;
+
+      function respond(q) {
+        var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+        var res = search(q);
+        var t1 = (window.performance && performance.now) ? performance.now() : Date.now();
+        var ms = Math.max(1, Math.round(t1 - t0));
+
+        var wait = thinking();
+        setTimeout(function () {
+          wait.remove();
+
+          if (GREET.test(q) && (!res[0] || res[0].s < 3)) {
+            botMessage(function (m, b) {
+              typeInto(b, 'Ready when you are. Ask about a bidder, a check, a tender clause or a source — I answer from this record and cite what I use.');
+            });
+            return;
+          }
+
+          var top = res[0];
+          /* a hit on one incidental term is not an answer — require that the
+             question is actually covered by the passage before speaking */
+          var qlen = toks(q).length || 1;
+          var grounded = top && top.s >= 1.25 &&
+            (top.hit >= 2 || top.key > 0 || top.hit / qlen >= 0.5);
+          var kept = res.filter(function (r) { return r.s >= (top ? top.s : 0) * 0.42; }).slice(0, 3);
+
+          if (!grounded) {
+            botMessage(function (m, b) {
+              var lead = node('span', 'lead');
+              b.appendChild(lead);
+              typeInto(lead, 'That is not in the verification record, so I will not guess at it.', function () {
+                if (res.length) {
+                  b.appendChild(node('div', 'more', 'The closest passages I hold are below — or try one of the suggested questions.'));
+                  m.appendChild(citeList(res.slice(0, 3)));
+                } else {
+                  b.appendChild(node('div', 'more', 'Try naming a bidder, a portal, a document or a clause.'));
+                }
+                scrollDown();
+              });
+            });
+            return;
+          }
+
+          botMessage(function (m, b) {
+            var lead = node('span', 'lead');
+            b.appendChild(lead);
+            typeInto(lead, top.p.answer, function () {
+              var support = top.p.text;
+              var second = kept[1];
+              if (second && second.s >= top.s * 0.62 && second.p.answer !== top.p.answer) {
+                support = support + ' ' + second.p.answer;
+              }
+              b.appendChild(node('div', 'more', support));
+
+              var meta = node('div', 'meta');
+              meta.appendChild(node('i'));
+              meta.appendChild(node('span', null,
+                kept.length + ' of ' + N + ' passages retrieved · ' + ms + ' ms'));
+              m.appendChild(meta);
+              m.appendChild(citeList(kept));
+              scrollDown();
+            });
+          });
+        }, reduce ? 60 : 340);
+      }
+
+      function ask(q) {
+        q = String(q || '').trim();
+        if (!q) return;
+        if (sugs && sugs.parentNode) { sugs.remove(); sugs = null; }
+        var m = node('div', 'msg you');
+        m.appendChild(node('div', 'b', q));
+        body.appendChild(m);
+        scrollDown();
+        respond(q);
+      }
+
+      /* ---------------- wiring ---------------- */
+      var opened = false;
+      function setOpen(on) {
+        panel.classList.toggle('open', on);
+        openBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+        openBtn.hidden = on;
+        if (on) { setTimeout(function () { input.focus(); }, 70); }
+        else if (opened) { openBtn.focus(); }
+        opened = on;
+      }
+
+      openBtn.addEventListener('click', function () { setOpen(true); });
+      if (closeBtn) closeBtn.addEventListener('click', function () { setOpen(false); });
+
+      document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+          e.preventDefault();
+          setOpen(!panel.classList.contains('open'));
+        } else if (e.key === 'Escape' && panel.classList.contains('open')) {
+          setOpen(false);
+        }
+      });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var q = input.value;
+        input.value = '';
+        input.style.height = 'auto';
+        ask(q);
+      });
+
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          form.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
+      });
+      input.addEventListener('input', function () {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 88) + 'px';
+      });
+
+      body.addEventListener('click', function (e) {
+        var s = e.target.closest ? e.target.closest('.sug') : null;
+        if (s) ask(s.textContent);
+      });
+
+      /* anything on a page can open the assistant with a question ready */
+      document.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('[data-ask]') : null;
+        if (!t) return;
+        e.preventDefault();
+        setOpen(true);
+        var q = t.getAttribute('data-ask');
+        if (q) setTimeout(function () { ask(q); }, 120);
+      });
+    })();
+  </script>
+  <script is:inline>
+    /* ------------------------------------------------------------------
+       Shared list behaviour for the console.
+
+       Tabs, search, quick chips, column sort and paging are the controls
+       that make a screen read as software rather than a picture of one,
+       and every list screen needs the same four. Wiring them by convention
+       means a page supplies markup only:
+
+         root   #id [data-ftable]   holds the items, each marked [data-frow]
+         item   [data-frow]         carries data-status, data-text and any
+                                    numeric data-<key> a column sorts on
+         tabs   [data-ftabs="id"]   containing .tab[data-filter]
+         search [data-fsearch="id"]
+         chip   [data-fchip="id"][data-term]
+         sort   .sortable[data-sort] inside the root
+         count / range / page / prev / next / empty / reset -> [data-f*="id"]
+
+       Paging is optional: with no pager elements every match is shown.
+       ------------------------------------------------------------------ */
+    (function () {
+      var UP   = '<path d="M12 18.5v-13M7.5 10 12 5.5 16.5 10"/>';
+      var DOWN = '<path d="M12 5.5v13M7.5 14 12 18.5 16.5 14"/>';
+      var BOTH = '<path d="M8 9.5 12 5.5l4 4"/><path d="M8 14.5 12 18.5l4-4"/>';
+
+      function one(sel) { return document.querySelector(sel); }
+      function all(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+
+      function init(root) {
+        var id = root.id;
+        if (!id) return;
+        function q(name) { return '[data-' + name + '="' + id + '"]'; }
+
+        var rows    = Array.prototype.slice.call(root.querySelectorAll('[data-frow]'));
+        var tabsEl  = one(q('ftabs'));
+        var search  = one(q('fsearch'));
+        var chips   = all(q('fchip'));
+        var countEl = one(q('fcount'));
+        var rangeEl = one(q('frange'));
+        var pageEl  = one(q('fpage'));
+        var prev    = one(q('fprev'));
+        var next    = one(q('fnext'));
+        var empty   = one(q('fempty'));
+        var reset   = one(q('freset'));
+        var sorts   = Array.prototype.slice.call(root.querySelectorAll('.sortable[data-sort]'));
+
+        var per = parseInt(root.getAttribute('data-fper'), 10) || 0;
+        var onTab = tabsEl ? tabsEl.querySelector('.tab.on') : null;
+
+        var state = {
+          status: onTab ? onTab.getAttribute('data-filter') : 'all',
+          q: '',
+          sort: root.getAttribute('data-fsort') || '',
+          dir: -1,
+          page: 1
+        };
+
+        function val(row, key) {
+          var raw = row.getAttribute('data-' + key);
+          if (raw === null) return 0;
+          var n = parseFloat(raw);
+          return isNaN(n) ? String(raw).toLowerCase() : n;
+        }
+
+        function matches(row) {
+          if (state.status && state.status !== 'all' &&
+              row.getAttribute('data-status') !== state.status) return false;
+          if (state.q && (row.getAttribute('data-text') || '').indexOf(state.q) === -1) return false;
+          return true;
+        }
+
+        function render() {
+          var vis = rows.filter(matches);
+          if (state.sort) {
+            vis.sort(function (a, b) {
+              var x = val(a, state.sort), y = val(b, state.sort);
+              if (x < y) return -state.dir;
+              if (x > y) return state.dir;
+              return 0;
+            });
+          }
+
+          var pages = per ? Math.max(1, Math.ceil(vis.length / per)) : 1;
+          if (state.page > pages) state.page = pages;
+          var start = per ? (state.page - 1) * per : 0;
+          var shown = per ? vis.slice(start, start + per) : vis;
+
+          rows.forEach(function (r) {
+            r.hidden = true;
+            r.classList.remove('lastvis');
+            r.classList.remove('firstvis');
+          });
+          vis.forEach(function (r) { root.appendChild(r); });
+          if (empty && empty.parentNode === root) root.appendChild(empty);
+          shown.forEach(function (r) { r.hidden = false; });
+          if (shown.length) {
+            shown[0].classList.add('firstvis');
+            shown[shown.length - 1].classList.add('lastvis');
+          }
+
+          if (empty) empty.classList.toggle('on', vis.length === 0);
+          if (countEl) countEl.textContent = vis.length + (vis.length === 1 ? ' row' : ' rows');
+          if (rangeEl) {
+            rangeEl.textContent = vis.length
+              ? 'Showing ' + (start + 1) + '–' + (start + shown.length) + ' of ' + vis.length
+              : 'Showing 0 of 0';
+          }
+          if (pageEl) pageEl.textContent = state.page + ' / ' + pages;
+          if (prev) prev.disabled = state.page <= 1;
+          if (next) next.disabled = state.page >= pages;
+        }
+
+        if (tabsEl) {
+          var btns = Array.prototype.slice.call(tabsEl.querySelectorAll('.tab'));
+          var pickTab = function (btn, focusIt) {
+            btns.forEach(function (t) {
+              var on = t === btn;
+              t.classList.toggle('on', on);
+              t.setAttribute('aria-selected', on ? 'true' : 'false');
+              t.tabIndex = on ? 0 : -1;
+              if (on && focusIt) t.focus();
+            });
+            state.status = btn.getAttribute('data-filter');
+            state.page = 1;
+            render();
+          };
+          tabsEl.addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('.tab') : null;
+            if (b) pickTab(b, false);
+          });
+          tabsEl.addEventListener('keydown', function (e) {
+            var i = btns.indexOf(document.activeElement);
+            if (i < 0) return;
+            var n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1
+                  : e.key === 'Home' ? 0 : e.key === 'End' ? btns.length - 1 : -1;
+            if (n === -1) return;
+            e.preventDefault();
+            pickTab(btns[(n + btns.length) % btns.length], true);
+          });
+        }
+
+        sorts.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var key = btn.getAttribute('data-sort');
+            if (state.sort === key) state.dir = -state.dir;
+            else { state.sort = key; state.dir = btn.getAttribute('data-dir') === 'asc' ? 1 : -1; }
+            sorts.forEach(function (b) {
+              var on = b === btn;
+              b.classList.toggle('act', on);
+              var svg = b.querySelector('svg');
+              if (svg) svg.innerHTML = !on ? BOTH : (state.dir === -1 ? DOWN : UP);
+            });
+            state.page = 1;
+            render();
+          });
+        });
+
+        if (search) {
+          search.addEventListener('input', function () {
+            state.q = search.value.trim().toLowerCase();
+            state.page = 1;
+            chips.forEach(function (c) { c.classList.remove('on'); });
+            render();
+          });
+        }
+
+        chips.forEach(function (chip) {
+          chip.addEventListener('click', function () {
+            var term = (chip.getAttribute('data-term') || '').toLowerCase();
+            var was = chip.classList.contains('on');
+            chips.forEach(function (c) { c.classList.remove('on'); });
+            if (!was) chip.classList.add('on');
+            state.q = was ? '' : term;
+            if (search) search.value = was ? '' : (chip.getAttribute('data-term') || '');
+            state.page = 1;
+            render();
+          });
+        });
+
+        if (prev) prev.addEventListener('click', function () { if (state.page > 1) { state.page--; render(); } });
+        if (next) next.addEventListener('click', function () { state.page++; render(); });
+
+        if (reset) {
+          reset.addEventListener('click', function () {
+            state.q = '';
+            state.page = 1;
+            if (search) search.value = '';
+            chips.forEach(function (c) { c.classList.remove('on'); });
+            var allTab = tabsEl && tabsEl.querySelector('[data-filter="all"]');
+            if (allTab) allTab.click(); else render();
+          });
+        }
+
+        render();
+      }
+
+      all('[data-ftable]').forEach(init);
+    })();
+  </script>
+</body>
+
+</html>

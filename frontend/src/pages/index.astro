@@ -1,0 +1,477 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL;
+
+const portals = [
+  { n: 'Udyam / MSME',              logo: 'udyam.png' },
+  { n: 'GSTN',                      c: '#1A6E5A',
+    icon: '<path d="M8.5 6.5h7M8.5 10h7M14.6 6.5c0 3.5-2.6 3.5-6.1 3.5l7 7.5"/>' },
+  { n: 'PAN & Income Tax',          logo: 'pan.png' },
+  { n: 'MCA21',                     logo: 'mca21.svg' },
+  { n: 'EPFO',                      logo: 'epfo.png' },
+  { n: 'ESIC',                      logo: 'esic.png' },
+  { n: 'Startup India',             logo: 'startup.png' },
+  { n: 'NSIC',                      logo: 'nsic.png' },
+  { n: 'DigiLocker',                logo: 'digilocker.png' },
+  { n: 'Make in India / BIS-DPIIT', logo: 'makeinindia.png' },
+  { n: 'Blacklisting & debarment',  c: '#5A6472',
+    icon: '<circle cx="12" cy="12" r="8.4"/><path d="m6.6 6.6 10.8 10.8"/>' },
+  { n: 'GeM seller profile',        logo: 'gem.svg' },
+];
+
+/* six of the eleven, shown as an overlapped stack in the hero */
+const heroLogos = [
+  { n: 'Udyam / MSME', f: 'udyam.png' },
+  { n: 'PAN & Income Tax', f: 'pan.png' },
+  { n: 'MCA21', f: 'mca21.svg' },
+  { n: 'EPFO', f: 'epfo.png' },
+  { n: 'ESIC', f: 'esic.png' },
+  { n: 'DigiLocker', f: 'digilocker.png' },
+];
+
+const heroFacts = [
+  { k: 'Sources queried', v: '11', s: 'government portals' },
+  { k: 'Per bidder', v: '38', s: 'individual checks' },
+  { k: 'Every retrieval', v: 'Timestamped', s: '' },
+  { k: 'Final call', v: 'The officer’s', s: '' },
+];
+
+const steps = [
+  {
+    n: '01',
+    h: 'Bidder submits, as usual',
+    p: 'Documents and registration numbers arrive through the normal GeM bidding flow. There is no separate process for the bidder to learn and nothing new to upload.',
+  },
+  {
+    n: '02',
+    h: 'Pramaan retrieves and cross-checks',
+    p: 'Udyam, GSTN, PAN, MCA21, EPFO, ESIC, DigiLocker and the other relevant portals are queried directly, and every result is matched against what the bidder submitted.',
+  },
+  {
+    n: '03',
+    h: 'The verification engine reviews the record',
+    p: 'Missing, inconsistent or non-compliant information is identified against both statutory requirements and the specific tender’s eligibility conditions.',
+  },
+  {
+    n: '04',
+    h: 'A compliance record is generated',
+    p: 'The officer sees a compliance score, a risk level, document-by-document verification status, and exactly what is still outstanding — in one place.',
+  },
+  {
+    n: '05',
+    h: 'The procurement officer decides',
+    p: 'Pramaan recommends; it does not rule. Qualification stays a human decision, backed by a complete and auditable record of every check performed.',
+  },
+];
+
+const faqs = [
+  {
+    q: 'Does Pramaan decide who wins a tender?',
+    a: 'No. Pramaan verifies, scores and evidences — it never awards. The procurement officer retains full authority to qualify or disqualify any bidder, and the platform records the reasoning behind each decision alongside the evidence it was based on.',
+  },
+  {
+    q: 'How does it access government portal data?',
+    a: 'Through authorised integration channels — published government APIs where they exist, and consent-based document retrieval via DigiLocker where they do not. Nothing is scraped, and every retrieval is logged against the bidder record that triggered it.',
+  },
+  {
+    q: 'What happens when a portal is unavailable?',
+    a: 'The check is marked pending rather than passed or failed, and the officer sees precisely which sources responded and which did not. Pramaan never infers compliance from an absent response; a missing source is always reported as missing.',
+  },
+  {
+    q: 'Can it handle tender-specific eligibility conditions?',
+    a: 'Yes. Alongside the statutory checks that apply to every bid, the compliance engine evaluates the conditions written into the individual tender — turnover thresholds, local content requirements, OEM authorisation, past-performance criteria and similar clauses.',
+  },
+  {
+    q: 'Is every check traceable afterwards?',
+    a: 'Yes. Each retrieval, evaluation and officer action is timestamped and linked back to the source record that produced it, so an award can be reconstructed for internal audit or a vigilance enquiry long after the tender closes.',
+  },
+  {
+    q: 'Is a bidder’s data retained after the tender closes?',
+    a: 'Verification records are retained for the audit period the procuring entity specifies, because an award must remain reconstructible. Source documents are referenced rather than duplicated wherever the integration permits it.',
+  },
+];
+---
+
+<Layout title="Pramaan — Verified bidder compliance for GeM procurement">
+  <Header />
+
+  <main>
+    <!-- ================= HERO ================= -->
+    <section class="hero">
+      <div class="wrap">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <span class="pill"><span class="dot" aria-hidden="true"></span> Human-in-the-loop bid verification</span>
+
+            <h1>
+              Eleven portals.<br />
+              One <span class="accent">verified record<svg class="ul" viewBox="0 0 300 14" preserveAspectRatio="none" aria-hidden="true"><path d="M4 9C58 3.5 116 12 172 6.5 214 2.5 258 4.5 296 8"/></svg></span>.
+            </h1>
+
+            <p class="lede">
+              A GeM procurement officer checks every bidder against Udyam, GSTN, PAN, MCA21, EPFO,
+              ESIC, DigiLocker and four more. Pramaan queries all of them, cross-checks every
+              submitted value against what the portal actually returns, and hands back
+              <b>one scored, auditable compliance record</b>.
+            </p>
+
+            <div class="cta-row">
+              <a class="btn-primary" href={`${base}login`}>
+                Open the officer console
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+              <a class="btn-secondary" href="#how">See how it works</a>
+            </div>
+
+            <p class="cta-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+              Pramaan recommends. The procurement officer decides.
+            </p>
+
+            <div class="hero-proof">
+              <span class="lbl">Sources queried</span>
+              <div class="hero-logos">
+                {heroLogos.map((l) => (
+                  <span title={l.n}><img src={`${base}logos/${l.f}`} alt={l.n} loading="lazy" decoding="async" /></span>
+                ))}
+                <span class="more" title="Startup India, NSIC, Make in India / BIS-DPIIT, debarment registers, GeM seller profile">+5</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mock-wrap">
+            <div class="app-shell">
+              <div class="app-chrome">
+                <div class="app-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+                <div class="app-url">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10" width="15" height="10" rx="2"/><path d="M8.5 10V7a3.5 3.5 0 0 1 7 0v3"/></svg>
+                  pramaan.gov.in/tender/GEM-2026-B-4471/bidder/07
+                </div>
+              </div>
+
+              <div class="app-body">
+                <div class="app-topbar">
+                  <div class="app-bid">
+                    <span class="id">Bidder 07 · GEM/2026/B/4471</span>
+                    <span class="name">Saraswati Industrial Works Pvt Ltd</span>
+                  </div>
+                  <span class="badge-verified">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>
+                    Verified
+                  </span>
+                </div>
+
+                <div class="app-prog" aria-hidden="true">
+                  <span>37 / 38 checks</span>
+                  <span class="track"><i></i></span>
+                  <span>11 sources</span>
+                </div>
+
+                <div class="app-score">
+                  <div class="gauge">
+                    <svg viewBox="0 0 96 96" aria-hidden="true">
+                      <circle class="track" cx="48" cy="48" r="42"/>
+                      <circle class="fill" cx="48" cy="48" r="42"/>
+                    </svg>
+                    <div class="val"><span>96</span><small>/100</small></div>
+                  </div>
+                  <div class="score-meta">
+                    <div class="k">Compliance score</div>
+                    <div class="v">Low risk</div>
+                    <p class="note">
+                      10 of 11 statutory checks cleared automatically. One item
+                      awaiting officer review before qualification.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="app-rows">
+                  <div class="app-row ok">
+                    <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+                    <span class="label">Udyam registration · MSME (Small)</span>
+                    <span class="state">Matched</span>
+                  </div>
+                  <div class="app-row ok">
+                    <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+                    <span class="label">GSTN · returns filed through Q3</span>
+                    <span class="state">Matched</span>
+                  </div>
+                  <div class="app-row ok">
+                    <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+                    <span class="label">PAN · income tax compliant</span>
+                    <span class="state">Matched</span>
+                  </div>
+                  <div class="app-row ok">
+                    <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+                    <span class="label">EPFO / ESIC · active establishment</span>
+                    <span class="state">Matched</span>
+                  </div>
+                  <div class="app-row warn">
+                    <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 16.2v.1"/></svg></span>
+                    <span class="label">Local content certificate · 46% declared</span>
+                    <span class="state">Review</span>
+                  </div>
+                  <div class="app-row ok">
+                    <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+                    <span class="label">Debarment registers · no record found</span>
+                    <span class="state">Clear</span>
+                  </div>
+                </div>
+
+                <div class="app-foot">
+                  <span class="live"><i aria-hidden="true"></i> Verified 14 s ago</span>
+                  <span>11 sources · 38 checks · full audit trail</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="app-float">
+              <div class="k">Officer time saved</div>
+              <div class="v">42 min <span>per bidder</span></div>
+            </div>
+
+            <div class="app-chip" aria-hidden="true">
+              <i></i> GSTN responded · <b>1.2 s</b>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-facts reveal">
+          {heroFacts.map((f) => (
+            <div class="f">
+              <div class="k">{f.k}</div>
+              <div class="v">{f.v} {f.s && <small>{f.s}</small>}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PORTALS ================= -->
+    <div class="portals">
+      <span class="label">Queried automatically, in place of a dozen open browser tabs</span>
+      <div class="marquee-mask">
+        <div class="chip-marquee">
+          <div class="chips">
+            {portals.map((p) => (
+            <span class="chip">
+              <span class="chip-logo">
+                {p.logo ? (
+                  <img src={`${base}logos/${p.logo}`} alt="" loading="lazy" decoding="async" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style={`color:${p.c}`} set:html={p.icon}></svg>
+                )}
+              </span>
+              <span class="chip-name">{p.n}</span>
+            </span>
+            ))}
+          </div>
+          <div class="chips" aria-hidden="true">
+            {portals.map((p) => (
+            <span class="chip">
+              <span class="chip-logo">
+                {p.logo ? (
+                  <img src={`${base}logos/${p.logo}`} alt="" loading="lazy" decoding="async" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style={`color:${p.c}`} set:html={p.icon}></svg>
+                )}
+              </span>
+              <span class="chip-name">{p.n}</span>
+            </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= HOW IT WORKS ================= -->
+    <section class="steps" id="how">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <span class="eyebrow">How it works</span>
+          <h2>How Pramaan verifies a bidder</h2>
+          <p>
+            The same checks a procurement officer runs today — retrieved and cross-referenced
+            automatically, with a human still making the final call.
+          </p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-list reveal">
+            {steps.map((s) => (
+              <div class="step">
+                <span class="num">{s.n}</span>
+                <div>
+                  <h3>{s.h}</h3>
+                  <p>{s.p}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div class="diagram-card reveal">
+            <svg class="seal-svg" viewBox="0 0 360 400" role="img" aria-label="Diagram showing eight government portals — Udyam, GSTN, PAN, MCA21, EPFO, ESIC, DigiLocker and NSIC — feeding verification data into a single bidder record, which resolves to a compliance score of 96 and a low risk classification">
+              <g fill="none">
+                <path class="conn conn-1" d="M180,40 Q166,100 180,160"/>
+                <path class="conn conn-2" d="M279,81 Q233,100 205,140"/>
+                <path class="conn conn-3" d="M320,180 Q272,166 224,180"/>
+                <path class="conn conn-4" d="M279,279 Q251,239 205,220"/>
+                <path class="conn conn-5" d="M180,320 Q194,279 180,238"/>
+                <path class="conn conn-6" d="M81,279 Q127,260 155,220"/>
+                <path class="conn conn-7" d="M40,180 Q88,194 136,180"/>
+                <path class="conn conn-8" d="M81,81 Q109,122 155,140"/>
+              </g>
+
+              <rect class="doc-rect" x="136" y="122" width="88" height="116" rx="6"/>
+              <path class="doc-fold" d="M204 122 L224 142 L204 142 Z"/>
+              <line class="doc-field" x1="150" y1="156" x2="210" y2="156"/>
+              <line class="doc-field" x1="150" y1="174" x2="210" y2="174"/>
+              <line class="doc-field" x1="150" y1="192" x2="196" y2="192"/>
+              <line class="doc-field" x1="150" y1="210" x2="204" y2="210"/>
+
+              <circle class="ripple" cx="222" cy="232" r="15" fill="none" stroke="var(--verify)" stroke-width="2"/>
+              <g class="badge">
+                <circle cx="222" cy="232" r="15" fill="var(--verify)"/>
+                <path d="M215 232 L220 238 L230 224" stroke="white" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+
+              <g class="node node-1"><circle cx="180" cy="40" r="5"/><text x="180" y="26" text-anchor="middle">Udyam</text></g>
+              <g class="node node-2"><circle cx="279" cy="81" r="5"/><text x="300" y="70" text-anchor="start">GSTN</text></g>
+              <g class="node node-3"><circle cx="320" cy="180" r="5"/><text x="330" y="184" text-anchor="start">PAN</text></g>
+              <g class="node node-4"><circle cx="279" cy="279" r="5"/><text x="300" y="300" text-anchor="start">MCA21</text></g>
+              <g class="node node-5"><circle cx="180" cy="320" r="5"/><text x="180" y="342" text-anchor="middle">EPFO</text></g>
+              <g class="node node-6"><circle cx="81" cy="279" r="5"/><text x="60" y="300" text-anchor="end">ESIC</text></g>
+              <g class="node node-7"><circle cx="40" cy="180" r="5"/><text x="30" y="184" text-anchor="end">DigiLocker</text></g>
+              <g class="node node-8"><circle cx="81" cy="81" r="5"/><text x="60" y="70" text-anchor="end">NSIC</text></g>
+
+              <text class="s-label" x="180" y="368" text-anchor="middle">Paperwork, done</text>
+              <text class="s-value" x="180" y="392" text-anchor="middle"><tspan class="score-num">0</tspan><tspan class="s-risk"> · low risk</tspan></text>
+            </svg>
+            <p class="cap">Eight portals resolving to one scored record</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FAQ ================= -->
+    <section class="faq" id="faq">
+      <div class="wrap">
+        <div class="faq-grid">
+          <div class="section-head reveal" style="margin-bottom:0;">
+            <span class="eyebrow">FAQ</span>
+            <h2>Questions officers ask first</h2>
+            <p>What the platform does, where the data comes from, and who stays in charge.</p>
+          </div>
+
+          <div class="faq-list reveal">
+            {faqs.map((f, i) => (
+              <details class="faq-item" open={i === 0}>
+                <summary>{f.q}</summary>
+                <p class="ans">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CLOSING ================= -->
+    <section class="closing">
+      <div class="wrap">
+        <div class="closing-card reveal">
+          <div>
+            <h2>Get the paperwork done. Every bidder, every tender.</h2>
+            <p>
+              One verified compliance record per bidder, produced in seconds and auditable for years.
+            </p>
+          </div>
+          <div class="closing-actions">
+            <a class="btn-light" href={`${base}login`}>
+              Officer login
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a class="btn-outline" href="#how">Revisit the workflow</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+
+  <script is:inline>
+    (function () {
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* ---- diagram score count-up ---- */
+      var el = document.querySelector('.score-num');
+      if (el) {
+        if (reduce || !('IntersectionObserver' in window)) {
+          el.textContent = '96';
+        } else {
+          var so = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (!e.isIntersecting) return;
+              so.unobserve(e.target);
+              setTimeout(function () {
+                var start = null, duration = 750, target = 96;
+                function step(ts) {
+                  if (!start) start = ts;
+                  var p = Math.min((ts - start) / duration, 1);
+                  el.textContent = Math.round(p * target);
+                  if (p < 1) requestAnimationFrame(step);
+                }
+                requestAnimationFrame(step);
+              }, 1500);
+            });
+          }, { threshold: 0.3 });
+          so.observe(el.closest('svg'));
+        }
+      }
+
+      /* ---- scroll reveal ---- */
+      var reveals = document.querySelectorAll('.reveal');
+      if (reveals.length) {
+        if (reduce || !('IntersectionObserver' in window)) {
+          reveals.forEach(function (r) { r.classList.add('in-view'); });
+        } else {
+          var ro = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (!e.isIntersecting) return;
+              e.target.classList.add('in-view');
+              ro.unobserve(e.target);
+            });
+          }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+          reveals.forEach(function (r, i) {
+            r.style.transitionDelay = Math.min(i % 6, 4) * 60 + 'ms';
+            ro.observe(r);
+          });
+        }
+      }
+
+      /* ---- active nav link ---- */
+      var navLinks = document.querySelectorAll('nav.links a');
+      var sections = Array.prototype.slice.call(document.querySelectorAll('section[id]'));
+      if (navLinks.length && sections.length && 'IntersectionObserver' in window) {
+        var byId = {};
+        navLinks.forEach(function (a) {
+          var href = a.getAttribute('href') || '';
+          var hashIdx = href.indexOf('#');
+          if (hashIdx !== -1) byId[href.slice(hashIdx + 1)] = a;
+        });
+        var navObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            var link = byId[entry.target.id];
+            if (!link || !entry.isIntersecting) return;
+            navLinks.forEach(function (a) { a.classList.remove('active'); });
+            link.classList.add('active');
+          });
+        }, { rootMargin: '-45% 0px -50% 0px' });
+        sections.forEach(function (s) { navObserver.observe(s); });
+      }
+    })();
+  </script>
+</Layout>

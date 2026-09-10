@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="327c6d4f-6240-4b27-81fa-98138c0a3346" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/frontend/src/components/LiveAnalysis.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/.github/workflows/deploy.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/CLAUDE.md" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/astro.config.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/astro.config.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/convert.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/convert.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/pramaan-landing.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pramaan-landing.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/data/mock.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/data/mock.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/data/rag.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/data/rag.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/layouts/AppLayout.astro" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/layouts/AppLayout.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/app/audit.astro" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/app/audit.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/app/bidder.astro" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/app/bidder.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/app/extract.astro" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/app/extract.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/app/index.astro" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/app/index.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/app/portals.astro" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/app/portals.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/app/report.astro" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/app/report.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/app/tender.astro" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/app/tender.astro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/app.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/styles/app.css" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="1538" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "DragonEmperor07"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/mohi2006august/Gem-procurement.git",
+    "accountId": "7c310054-f3e5-4564-adf9-821cff7c66e9"
+  }
+}]]></component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 1,
+  "fromUser": false
+}]]></component>
+  <component name="ProjectId" id="3J77Pv5ijfO6ycKkFdAan8wQPAm" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "main",
+    "javascript.preferred.runtime.type.id": "node",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/Users/Mujtaba/Projects/gem-compliance-platform",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
+    "to.speed.mode.migration.done": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-WS-262.10315.144" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="327c6d4f-6240-4b27-81fa-98138c0a3346" name="Changes" comment="" />
+      <created>1789000231799</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1789000231799</updated>
+      <workItem from="1789000232862" duration="673000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$" />
+      <path value="$PROJECT_DIR$/frontend" />
+    </ignored-roots>
+    <MESSAGE value="cors" />
+    <option name="LAST_COMMIT_MESSAGE" value="cors" />
+  </component>
+</project>

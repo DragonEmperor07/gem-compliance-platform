@@ -1,0 +1,107 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout
+  title="Officer login — Pramaan"
+  description="Sign in to the Pramaan compliance console to review verified bidder records for GeM tenders."
+>
+  <Header />
+
+  <main class="login-main">
+    <div class="wrap">
+      <div class="login-layout">
+        <div class="login-pitch">
+          <span class="pill"><span class="dot" aria-hidden="true"></span> Procurement officer access</span>
+          <h1>One verified record for every bidder on your tender.</h1>
+          <p>
+            Sign in to review compliance scores, outstanding checks and the full audit trail behind
+            each recommendation.
+          </p>
+
+          <div class="audit-points">
+            <div class="audit-point">
+              <span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+              <div>
+                <h4>Eleven portals, already checked</h4>
+                <p>Udyam, GSTN, PAN, MCA21, EPFO, ESIC and more, resolved before you open the bid.</p>
+              </div>
+            </div>
+            <div class="audit-point">
+              <span class="tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+              <div>
+                <h4>Your decision, on the record</h4>
+                <p>Qualification stays with you, and every action you take is logged against the tender.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="login-card">
+          <div class="login-header">
+            <h2>Sign in</h2>
+            <p>Use your government-issued email to access the compliance console.</p>
+          </div>
+
+          <form class="login-form" id="loginForm">
+            <div class="form-group">
+              <label for="email">Government email ID</label>
+              <input type="email" id="email" name="email" autocomplete="username" placeholder="officer@nic.in" required />
+            </div>
+
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" autocomplete="current-password" placeholder="••••••••" required />
+            </div>
+
+            <div class="form-options">
+              <label class="remember">
+                <input type="checkbox" /> Remember this device
+              </label>
+              <a href="#" class="forgot">Forgot password?</a>
+            </div>
+
+            <button class="btn-primary login-btn" type="submit">
+              Sign in
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </form>
+
+          <div class="login-divider">or</div>
+
+          <a class="btn-secondary sso-btn" href={`${base}app`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 4.5 5.8v6.1c0 4.4 3.1 8 7.5 9.1 4.4-1.1 7.5-4.7 7.5-9.1V5.8L12 2.5Z"/></svg>
+            Continue with NIC single sign-on
+          </a>
+
+          <div class="login-footer">
+            <p>Need access for your procurement office? <a href={`${base}#faq`}>Request onboarding</a></p>
+          </div>
+
+          <div class="login-secure">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10" width="15" height="10" rx="2"/><path d="M8.5 10V7a3.5 3.5 0 0 1 7 0v3"/></svg>
+            Demo environment · credentials are not transmitted
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+
+  <script is:inline define:vars={{ consoleUrl: `${base}app` }}>
+    (function () {
+      var f = document.getElementById('loginForm');
+      if (!f) return;
+      // Demo only: nothing is transmitted, we just walk through to the console.
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        window.location.href = consoleUrl;
+      });
+    })();
+  </script>
+</Layout>

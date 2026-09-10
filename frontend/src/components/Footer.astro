@@ -1,0 +1,63 @@
+---
+const base = import.meta.env.BASE_URL;
+const year = new Date().getFullYear();
+---
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href={base} class="wordmark">
+          <span class="mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#F7F9F5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 6v6c0 4.6 3.2 8.4 8 9.5 4.8-1.1 8-4.9 8-9.5V6l-8-3.5Z"/><path d="m9 12 2.2 2.4L15.5 10"/></svg>
+          </span>
+          Pramaan
+        </a>
+        <p>AI-assisted bidder compliance verification for Government e-Marketplace procurement — one auditable record instead of eight open tabs.</p>
+        <span class="foot-status"><i aria-hidden="true"></i> All verification services operational</span>
+      </div>
+
+      <div class="foot-col">
+        <h5>Product</h5>
+        <ul>
+          <li><a href={`${base}#how`}>How it works</a></li>
+          <li><a href={`${base}#faq`}>FAQ</a></li>
+          <li><a href={`${base}login`}>Officer login</a></li>
+        </ul>
+      </div>
+
+      <div class="foot-col">
+        <h5>Integrations</h5>
+        <ul>
+          <li><a href="https://udyamregistration.gov.in" target="_blank" rel="noopener noreferrer">Udyam <span class="ext">↗</span></a></li>
+          <li><a href="https://www.gst.gov.in" target="_blank" rel="noopener noreferrer">GSTN <span class="ext">↗</span></a></li>
+          <li><a href="https://www.mca.gov.in" target="_blank" rel="noopener noreferrer">MCA21 <span class="ext">↗</span></a></li>
+          <li><a href="https://www.epfindia.gov.in" target="_blank" rel="noopener noreferrer">EPFO <span class="ext">↗</span></a></li>
+          <li><a href="https://www.digilocker.gov.in" target="_blank" rel="noopener noreferrer">DigiLocker <span class="ext">↗</span></a></li>
+        </ul>
+      </div>
+
+      <div class="foot-col">
+        <h5>Resources</h5>
+        <ul>
+          <li><a href={`${base}#faq`}>FAQ</a></li>
+          <li><a href="https://gem.gov.in" target="_blank" rel="noopener noreferrer">GeM portal <span class="ext">↗</span></a></li>
+          <li><a href="https://www.sih.gov.in" target="_blank" rel="noopener noreferrer">Smart India Hackathon <span class="ext">↗</span></a></li>
+          <li><a href="https://github.com/mohi2006august" target="_blank" rel="noopener noreferrer">Project repository <span class="ext">↗</span></a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="foot-bottom">
+      <span>© {year} Pramaan. Built as a prototype for Smart India Hackathon 2026.</span>
+      <div class="legal">
+        <a href={`${base}#faq`}>Privacy</a>
+        <a href={`${base}#faq`}>Data handling</a>
+        <a href={`${base}#faq`}>Accessibility</a>
+        <span class="tag">PS SIH26100</span>
+      </div>
+    </div>
+  </div>
+</footer>

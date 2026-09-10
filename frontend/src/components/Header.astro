@@ -1,0 +1,83 @@
+---
+const base = import.meta.env.BASE_URL;
+const nav = [
+  { href: `${base}#how`, label: 'How it works' },
+  { href: `${base}#faq`, label: 'FAQ' },
+];
+---
+
+<header class="nav" id="siteNav">
+  <div class="nav-inner">
+    <a href={base} class="wordmark">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F7F9F5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 6v6c0 4.6 3.2 8.4 8 9.5 4.8-1.1 8-4.9 8-9.5V6l-8-3.5Z"/><path d="m9 12 2.2 2.4L15.5 10"/></svg>
+      </span>
+      Pramaan
+      <span class="sub">GeM Compliance</span>
+    </a>
+
+    <nav class="links" aria-label="Primary">
+      {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+
+    <div class="nav-actions">
+      <a href={`${base}login`} class="nav-link-quiet">Sign in</a>
+      <a href={`${base}login`} class="nav-btn">
+        Officer login
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="mobile-menu" id="mobileMenu">
+    {nav.map((item) => (
+      <a href={item.href}>
+        {item.label}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+    ))}
+    <a href={`${base}login`} class="nav-btn m-cta">Officer login</a>
+  </div>
+</header>
+
+<script is:inline>
+  (function () {
+    var header = document.getElementById('siteNav');
+    var toggle = document.getElementById('navToggle');
+    var menu = document.getElementById('mobileMenu');
+
+    function onScroll() {
+      if (!header) return;
+      header.classList.toggle('scrolled', window.scrollY > 8);
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    function closeMenu() {
+      if (!menu || !toggle) return;
+      menu.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Open menu');
+    }
+
+    if (toggle && menu) {
+      toggle.addEventListener('click', function () {
+        var open = menu.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+      });
+      menu.addEventListener('click', function (e) {
+        if (e.target.closest('a')) closeMenu();
+      });
+      window.addEventListener('resize', function () {
+        if (window.innerWidth > 1000) closeMenu();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMenu();
+      });
+    }
+  })();
+</script>

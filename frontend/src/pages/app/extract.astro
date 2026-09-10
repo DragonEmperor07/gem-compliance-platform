@@ -1,0 +1,390 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
+---
+
+<AppLayout title="Tender analysis — Pramaan" active="extract" crumbs={[{ label: 'Tender analysis' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Tender analysis</h1>
+      <div class="meta-row">
+        <span>Upload a tender to extract evidence requirements</span>
+        <span>Add a bidder ZIP for a complete compliance score</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="stack">
+      <div class="panel">
+        <div class="panel-head"><h2>Files for this analysis</h2><span class="note">No sample data is shown</span></div>
+        <div class="panel-body">
+          <div class="drop">
+            <span class="ic" aria-hidden="true">⇧</span>
+            <h3>Start with the tender PDF</h3>
+            <p>Use a tender PDF with a bidder ZIP for real files, or load a structured JSON scenario for acceptance testing.</p>
+            <div class="acts" style="justify-content:center; margin-top:14px;">
+              <button class="btn-sm pick" type="button" id="pickTenderBtn">Choose tender PDF</button>
+              <button class="btn-sm pick" type="button" id="pickBidderBtn">Add bidder ZIP</button>
+              <button class="btn-sm pick" type="button" id="pickScenarioBtn">Test scenario JSON</button>
+            </div>
+            <input type="file" id="tenderIn" accept=".pdf,application/pdf" hidden />
+            <input type="file" id="bidderIn" accept=".zip,application/zip" hidden />
+            <input type="file" id="scenarioIn" accept=".json,application/json" hidden />
+          </div>
+        </div>
+        <div class="panel-body flush">
+          <div class="flist" id="selectedFiles">
+            <div class="empty on" id="emptyFiles"><div class="t">No files selected</div><div class="d">Choose a tender PDF to begin.</div></div>
+          </div>
+        </div>
+        <div class="decide-foot">
+          <button class="btn-sm solid" type="button" id="runBtn" disabled>Analyze tender</button>
+          <span class="note" id="runState" aria-live="polite">Select a tender PDF to begin.</span>
+        </div>
+      </div>
+
+      <div class="panel" id="resultPanel" hidden>
+        <div class="panel-head"><h2 id="resultTitle">Analysis result</h2><span class="note" id="resultStatus" aria-live="polite"></span></div>
+        <div class="panel-body" id="resultSummary"></div>
+        <div class="panel-body flush" id="requirementsList"></div>
+        <div class="panel-body flush" id="documentsList"></div>
+        <div class="panel-body flush" id="fieldsList"></div>
+        <div class="panel-body flush" id="missingList"></div>
+        <div class="panel-body flush" id="findingsList"></div>
+      </div>
+    </div>
+
+    <div class="col-side stack">
+      <div class="panel">
+        <div class="panel-head"><h3>How it works</h3></div>
+        <div class="panel-body">
+          <div class="pipe">
+            <div class="pstep idle"><span class="b">1</span><div><div class="t">Read tender</div><div class="d">Relevant bidder-obligation pages are selected.</div></div></div>
+            <div class="pstep idle"><span class="b">2</span><div><div class="t">Build checklist</div><div class="d">Required evidence documents are identified.</div></div></div>
+            <div class="pstep idle"><span class="b">3</span><div><div class="t">Match submission</div><div class="d">Available when a bidder ZIP is included.</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>What you need</h3></div>
+        <div class="panel-body">
+          <div class="fld"><span class="k">Tender analysis</span><span class="v yes">Tender PDF</span></div>
+          <div class="fld"><span class="k">Compliance score</span><span class="v">Tender PDF + bidder ZIP</span></div>
+          <div class="fld"><span class="k">Acceptance testing</span><span class="v">Scenario JSON</span></div>
+          <div class="fld"><span class="k">Supported bidder files</span><span class="v">PDF, images, DOCX, text</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ apiUrl }}>
+    (function () {
+      var api = apiUrl;
+      var tenderInput = document.getElementById('tenderIn');
+      var bidderInput = document.getElementById('bidderIn');
+      var scenarioInput = document.getElementById('scenarioIn');
+      var run = document.getElementById('runBtn');
+      var state = document.getElementById('runState');
+      var files = document.getElementById('selectedFiles');
+      var empty = document.getElementById('emptyFiles');
+      var panel = document.getElementById('resultPanel');
+      var title = document.getElementById('resultTitle');
+      var status = document.getElementById('resultStatus');
+      var summary = document.getElementById('resultSummary');
+      var requirementsList = document.getElementById('requirementsList');
+      var documentsList = document.getElementById('documentsList');
+      var fieldsList = document.getElementById('fieldsList');
+      var missingList = document.getElementById('missingList');
+      var findingsList = document.getElementById('findingsList');
+      var tenderFile = null;
+      var bidderFile = null;
+      var scenarioFile = null;
+      var reviewedRequirements = null;
+
+      function add(node, text, klass) { var item = document.createElement('span'); if (klass) item.className = klass; item.textContent = text; node.appendChild(item); return item; }
+      function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+      function row(node, label, value, klass) { var item = document.createElement('div'); item.className = 'fld'; add(item, label, 'k'); add(item, value, klass || 'v'); node.appendChild(item); }
+      function heading(node, text) { var item = document.createElement('div'); item.className = 'grp-head'; add(item, text, 't'); node.appendChild(item); }
+      function fileRow(file, label) {
+        var item = document.createElement('div'); item.className = 'fitem';
+        add(item, '▤', 'fi'); var detail = document.createElement('span'); detail.style.minWidth = '0';
+        add(detail, file.name, 'nm'); add(detail, Math.max(1, Math.round(file.size / 1024)) + ' KB', 'sub'); item.appendChild(detail);
+        add(item, label, 'src'); add(item, 'Ready', 'conf'); var badge = document.createElement('span'); add(badge, 'Queued', 'bdg pending'); item.appendChild(badge); return item;
+      }
+      function renderFiles() {
+        files.querySelectorAll('.fitem').forEach(function (item) { item.remove(); });
+        empty.hidden = !!(tenderFile || bidderFile || scenarioFile);
+        if (tenderFile) files.appendChild(fileRow(tenderFile, 'Tender'));
+        if (bidderFile) files.appendChild(fileRow(bidderFile, 'Bidder submission'));
+        if (scenarioFile) files.appendChild(fileRow(scenarioFile, 'Test scenario'));
+        run.disabled = !(tenderFile || scenarioFile);
+        run.textContent = scenarioFile ? 'Evaluate test scenario' : (bidderFile && reviewedRequirements ? 'Run compliance check' : 'Analyze tender');
+        state.textContent = scenarioFile ? 'Ready to evaluate structured test data.' : (tenderFile ? (bidderFile ? (reviewedRequirements ? 'Requirements reviewed. Ready for full compliance analysis.' : 'First analyze and review the tender requirements.') : 'Tender ready. Add a bidder ZIP for scoring.') : 'Select a tender PDF or test scenario JSON to begin.');
+      }
+      function copyRequirements(items) {
+        return items.map(function (item) {
+          return Object.assign({}, item, {
+            evidence_types: (item.evidence_types || []).slice(),
+            thresholds: (item.thresholds || []).map(function (threshold) { return Object.assign({}, threshold); }),
+            sub_requirements: (item.sub_requirements || []).map(function (child) {
+              return Object.assign({}, child, {
+                evidence_types: (child.evidence_types || []).slice(),
+                thresholds: (child.thresholds || []).map(function (threshold) { return Object.assign({}, threshold); })
+              });
+            })
+          });
+        });
+      }
+      function showRequirements(items, editable) {
+        clear(requirementsList); if (!items.length) return;
+        var totalChecks = items.reduce(function (total, item) { return total + Math.max(1, (item.sub_requirements || []).length); }, 0);
+        var toolbar = document.createElement('div'); toolbar.className = 'req-toolbar';
+        var toolbarText = document.createElement('div');
+        add(toolbarText, 'Tender requirements', 'req-toolbar-title');
+        add(toolbarText, 'Review what applies before scoring the bidder.', 'req-toolbar-note');
+        toolbar.appendChild(toolbarText);
+        add(toolbar, items.length + ' categories · ' + totalChecks + ' checks', 'req-count');
+        requirementsList.appendChild(toolbar);
+
+        function statusBadge(text, kind) { var badge = document.createElement('span'); badge.className = 'req-status ' + kind; badge.textContent = text; return badge; }
+        function sourceDetails(sourceText, sourcePage) {
+          if (!sourceText) return null;
+          var details = document.createElement('details'); details.className = 'req-source';
+          var sourceSummary = document.createElement('summary'); sourceSummary.textContent = 'View tender evidence' + (sourcePage ? ' · page ' + sourcePage : '');
+          var quote = document.createElement('p'); quote.textContent = sourceText.replace(/\s+/g, ' ').trim();
+          details.appendChild(sourceSummary); details.appendChild(quote); return details;
+        }
+        function toggleControl(checked, label, onChange) {
+          var control = document.createElement('label'); control.className = 'req-toggle';
+          var input = document.createElement('input'); input.type = 'checkbox'; input.checked = checked;
+          var track = document.createElement('span'); track.className = 'req-toggle-track'; track.setAttribute('aria-hidden', 'true');
+          add(control, label, 'req-toggle-label'); control.insertBefore(input, control.firstChild); control.insertBefore(track, control.lastChild);
+          input.addEventListener('change', function () { onChange(input.checked); });
+          return control;
+        }
+
+        items.forEach(function (item, index) {
+          var group = document.createElement('section'); group.className = 'req-group';
+          var groupHead = document.createElement('div'); groupHead.className = 'req-group-head';
+          add(groupHead, String(index + 1).padStart(2, '0'), 'req-index');
+          var identity = document.createElement('div'); identity.className = 'req-identity';
+          var groupName = document.createElement('h3'); groupName.textContent = item.name || item.label; identity.appendChild(groupName);
+          var meta = document.createElement('div'); meta.className = 'req-meta';
+          if (item.requirement_type) add(meta, item.requirement_type.replace('_', ' '), 'req-chip');
+          if (item.source_page) add(meta, 'Tender p. ' + item.source_page, 'req-chip');
+          var checkCount = Math.max(1, (item.sub_requirements || []).length);
+          add(meta, checkCount + (checkCount === 1 ? ' check' : ' checks'), 'req-chip');
+          identity.appendChild(meta); groupHead.appendChild(identity);
+          var actions = document.createElement('div'); actions.className = 'req-group-actions';
+          var groupBadge = statusBadge('', 'neutral'); actions.appendChild(groupBadge);
+          var childBadgeUpdates = [];
+          function updateGroupState() {
+            var active = item.mandatory !== false;
+            group.classList.toggle('is-off', !active);
+            groupBadge.textContent = active ? (item.condition ? 'Applies' : 'Required') : 'Not applicable';
+            groupBadge.className = 'req-status ' + (active ? (item.condition ? 'review' : 'required') : 'neutral');
+            group.querySelectorAll('.req-child .req-toggle input').forEach(function (input) { input.disabled = !active; });
+            childBadgeUpdates.forEach(function (refresh) { refresh(); });
+          }
+          if (editable) {
+            actions.appendChild(toggleControl(item.mandatory !== false, item.condition ? 'Applies to bidder' : 'Include group', function (checked) {
+              reviewedRequirements[index].mandatory = checked; updateGroupState(); state.textContent = 'Checklist adjusted. Run with a bidder ZIP when ready.';
+            }));
+          }
+          groupHead.appendChild(actions); group.appendChild(groupHead);
+          var groupBody = document.createElement('div'); groupBody.className = 'req-group-body';
+          if (item.description) { var description = document.createElement('p'); description.className = 'req-description'; description.textContent = item.description; groupBody.appendChild(description); }
+          if (item.condition) { var condition = document.createElement('div'); condition.className = 'req-condition'; add(condition, 'Applies when', 'req-condition-label'); add(condition, item.condition, 'req-condition-text'); groupBody.appendChild(condition); }
+          var children = document.createElement('div'); children.className = 'req-children';
+          (item.sub_requirements || []).forEach(function (child, childIndex) {
+            var childRow = document.createElement('div'); childRow.className = 'req-child';
+            var childMark = document.createElement('span'); childMark.className = 'req-child-mark'; childMark.textContent = '✓'; childRow.appendChild(childMark);
+            var childMain = document.createElement('div'); childMain.className = 'req-child-main';
+            var childTop = document.createElement('div'); childTop.className = 'req-child-top';
+            var childTitle = document.createElement('h4'); childTitle.textContent = child.name; childTop.appendChild(childTitle);
+            var childBadge = statusBadge('', 'neutral'); childTop.appendChild(childBadge); childMain.appendChild(childTop);
+            if (child.description) { var childDescription = document.createElement('p'); childDescription.className = 'req-child-description'; childDescription.textContent = child.description; childMain.appendChild(childDescription); }
+            var childMeta = document.createElement('div'); childMeta.className = 'req-meta';
+            (child.evidence_types || []).forEach(function (evidence) { add(childMeta, 'Evidence: ' + evidence, 'req-chip evidence'); });
+            (child.thresholds || []).forEach(function (threshold) { add(childMeta, threshold.name + ': ' + threshold.value + (threshold.unit ? ' ' + threshold.unit : ''), 'req-chip threshold'); });
+            if (child.source_page) add(childMeta, 'p. ' + child.source_page, 'req-chip');
+            childMain.appendChild(childMeta);
+            var evidenceDetails = sourceDetails(child.source_text, child.source_page); if (evidenceDetails) childMain.appendChild(evidenceDetails);
+            childRow.appendChild(childMain);
+            function updateChildBadge() {
+              var active = item.mandatory !== false && child.mandatory !== false;
+              childRow.classList.toggle('is-off', !active);
+              childBadge.textContent = active ? 'Included' : 'Excluded';
+              childBadge.className = 'req-status ' + (active ? 'included' : 'neutral');
+            }
+            childBadgeUpdates.push(updateChildBadge);
+            if (editable) {
+              childRow.appendChild(toggleControl(child.mandatory !== false, 'Include check', function (checked) {
+                reviewedRequirements[index].sub_requirements[childIndex].mandatory = checked; updateChildBadge(); state.textContent = 'Checklist adjusted. Run with a bidder ZIP when ready.';
+              }));
+            }
+            children.appendChild(childRow);
+          });
+          if (!(item.sub_requirements || []).length) { var parentSource = sourceDetails(item.source_text, item.source_page); if (parentSource) groupBody.appendChild(parentSource); }
+          if (children.childNodes.length) groupBody.appendChild(children);
+          group.appendChild(groupBody); requirementsList.appendChild(group); updateGroupState();
+        });
+      }
+      function tenderResult(data) {
+        panel.hidden = false; title.textContent = 'Tender requirements'; status.textContent = 'Checklist ready';
+        clear(summary); clear(documentsList); clear(fieldsList); clear(missingList); clear(findingsList);
+        row(summary, 'Requirements found', String((data.requirements || []).length), 'v yes');
+        row(summary, 'Review before scoring', 'Use Include to adjust bidder-specific requirements');
+        row(summary, 'Next step', 'Add bidder ZIP to score compliance');
+        reviewedRequirements = copyRequirements(data.requirements || []);
+        showRequirements(reviewedRequirements, true);
+      }
+      function pipelineResult(data) {
+        var report = data.report || {}; var counts = report.counts || {}; var decision = data.decision || {}; var score = decision.score || report.compliance || {};
+        panel.hidden = false; title.textContent = 'Compliance result'; status.textContent = decision.bid_responsiveness || (report.status || 'complete').toUpperCase();
+        clear(summary); clear(documentsList); clear(fieldsList); clear(missingList); clear(findingsList);
+        row(summary, 'Compliance score', String(score.percentage || 0) + '%', 'v yes');
+        row(summary, 'Documents scanned', String(counts.files_scanned || 0));
+        row(summary, 'Required evidence missing', String(counts.missing_required || 0), counts.missing_required ? 'v no' : 'v yes');
+        reviewedRequirements = null;
+        showRequirements(data.requirements || [], false);
+        if ((data.documents || []).length) { heading(documentsList, 'Extracted submission documents'); data.documents.forEach(function (doc) { var item = document.createElement('div'); item.className = 'fitem'; add(item, '▤', 'fi'); var detail = document.createElement('span'); detail.style.minWidth = '0'; add(detail, doc.source_file, 'nm'); add(detail, String(doc.text_length) + ' extracted characters', 'sub'); item.appendChild(detail); add(item, doc.status, 'src'); documentsList.appendChild(item); }); }
+        var fields = (data.documents || []).reduce(function (all, doc) { return all.concat(doc.fields || []); }, []);
+        if (fields.length) { heading(fieldsList, 'Submitted identifiers — verification pending'); fields.forEach(function (field) { var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div'); add(detail, field.field + ': ' + field.value, 'v'); add(detail, field.source_file, 'k'); box.appendChild(detail); var badge = document.createElement('span'); add(badge, 'Submitted only', 'bdg na'); box.appendChild(badge); fieldsList.appendChild(box); }); }
+        if ((report.missing || []).length) { heading(missingList, 'Missing or review-needed evidence'); report.missing.forEach(function (item) { var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div'); add(detail, item.label, 'v'); add(detail, item.required ? 'Required evidence' : 'Optional evidence', 'k'); if ((item.requirements || []).length) add(detail, item.requirements.join('; '), 'k'); box.appendChild(detail); var badge = document.createElement('span'); add(badge, item.possible_match ? 'Review' : 'Missing', 'bdg alert'); box.appendChild(badge); missingList.appendChild(box); }); }
+        if ((data.findings || []).length) { heading(findingsList, 'Why this needs attention'); data.findings.forEach(function (finding) { var box = document.createElement('div'); box.className = 'find ' + (finding.severity === 'high' ? 'high' : 'medium'); var detail = document.createElement('div'); var name = document.createElement('h4'); name.textContent = finding.title; var explanation = document.createElement('p'); explanation.textContent = finding.explanation; detail.appendChild(name); detail.appendChild(explanation); box.appendChild(detail); findingsList.appendChild(box); }); }
+        try { localStorage.setItem('pramaan.liveAnalysis', JSON.stringify(data)); } catch (_) {}
+      }
+      function scenarioResult(data) {
+        var decision = data.decision || {}; var counts = decision.counts || {}; var score = decision.score || {};
+        panel.hidden = false; title.textContent = 'Scenario compliance result'; status.textContent = decision.bid_responsiveness || 'COMPLETE';
+        clear(summary); clear(requirementsList); clear(documentsList); clear(fieldsList); clear(missingList); clear(findingsList);
+        row(summary, 'Bidder', (data.bidder || {}).legal_name || 'Structured scenario');
+        row(summary, 'Compliance score', String(score.percentage || 0) + '%', decision.bid_responsiveness === 'RESPONSIVE' ? 'v yes' : 'v no');
+        row(summary, 'Documents submitted', String(counts.documents_submitted || 0) + ' / ' + String(counts.documents_total || 0));
+        row(summary, 'Missing documents', String(counts.documents_missing || 0), counts.documents_missing ? 'v no' : 'v yes');
+        row(summary, 'Failed validation', String(counts.documents_failing_validation || 0), counts.documents_failing_validation ? 'v no' : 'v yes');
+        row(summary, 'Eligibility met', String(counts.eligibility_criteria_met || 0) + ' / ' + String(counts.eligibility_criteria_evaluated || 0));
+        row(summary, 'Recommendation', decision.recommendation || 'Officer decision required');
+        if ((decision.eligibility_checks || []).length) {
+          heading(requirementsList, 'Eligibility criteria');
+          decision.eligibility_checks.forEach(function (check) {
+            var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div');
+            add(detail, check.label, 'v'); add(detail, check.reason, 'k'); box.appendChild(detail);
+            var badge = document.createElement('span'); add(badge, check.state === 'pass' ? 'Met' : check.state === 'fail' ? 'Not met' : 'Review', check.state === 'pass' ? 'bdg ok' : check.state === 'fail' ? 'bdg alert' : 'bdg warn'); box.appendChild(badge); requirementsList.appendChild(box);
+          });
+        }
+        var problemDocuments = (decision.document_checks || []).filter(function (check) { return check.state !== 'pass'; });
+        if (problemDocuments.length) {
+          heading(missingList, 'Document deficiencies');
+          problemDocuments.forEach(function (check) {
+            var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div');
+            add(detail, check.label, 'v'); add(detail, check.reason, 'k'); box.appendChild(detail);
+            var badge = document.createElement('span'); add(badge, check.state === 'missing' ? 'Missing' : check.state === 'fail' ? 'Invalid' : 'Review', check.state === 'review' ? 'bdg warn' : 'bdg alert'); box.appendChild(badge); missingList.appendChild(box);
+          });
+        } else {
+          heading(documentsList, 'Document validation'); row(documentsList, 'Result', 'All submitted documents passed', 'v yes');
+        }
+        var comparison = data.expected_comparison || {};
+        if (comparison.available) row(fieldsList, 'Acceptance fixture', comparison.all_matched ? 'Computed result matches expected outcome' : 'Computed result differs from expected outcome', comparison.all_matched ? 'v yes' : 'v no');
+        try { localStorage.setItem('pramaan.scenarioAnalysis', JSON.stringify(data)); } catch (_) {}
+      }
+      document.getElementById('pickTenderBtn').addEventListener('click', function () { tenderInput.click(); });
+      document.getElementById('pickBidderBtn').addEventListener('click', function () { bidderInput.click(); });
+      document.getElementById('pickScenarioBtn').addEventListener('click', function () { scenarioInput.click(); });
+      tenderInput.addEventListener('change', function () { tenderFile = tenderInput.files[0] || null; scenarioFile = null; scenarioInput.value = ''; reviewedRequirements = null; renderFiles(); });
+      bidderInput.addEventListener('change', function () { bidderFile = bidderInput.files[0] || null; scenarioFile = null; scenarioInput.value = ''; renderFiles(); });
+      scenarioInput.addEventListener('change', function () { scenarioFile = scenarioInput.files[0] || null; if (scenarioFile) { tenderFile = null; bidderFile = null; tenderInput.value = ''; bidderInput.value = ''; reviewedRequirements = null; } renderFiles(); });
+      run.addEventListener('click', function () {
+        if (!tenderFile && !scenarioFile) return;
+        if (scenarioFile) {
+          run.disabled = true; state.textContent = 'Evaluating documents, validation and eligibility criteria…';
+          var scenarioForm = new FormData(); scenarioForm.append('scenario', scenarioFile);
+          fetch(api.replace(/\/$/, '') + '/api/compliance/scenarios/evaluate', { method: 'POST', body: scenarioForm })
+            .then(function (response) { return response.json().then(function (data) { if (!response.ok) throw new Error(data.detail || 'Scenario evaluation failed.'); return data; }); })
+            .then(function (data) { scenarioResult(data); state.textContent = 'Scenario evaluation complete.'; })
+            .catch(function (error) { state.textContent = error.message; })
+            .finally(function () { run.disabled = false; });
+          return;
+        }
+        var runPipeline = !!(bidderFile && reviewedRequirements);
+        run.disabled = true; state.textContent = runPipeline ? 'Extracting and matching bidder evidence…' : 'Reading tender requirements…';
+        var form = new FormData(); form.append('tender', tenderFile);
+        var endpoint = '/api/compliance/tenders/requirements';
+        if (runPipeline) {
+          endpoint = '/api/compliance/pipeline'; form.append('submission', bidderFile); form.append('use_ocr', 'true');
+          if (reviewedRequirements) form.append('requirements', JSON.stringify({ requirements: reviewedRequirements }));
+        }
+        fetch(api.replace(/\/$/, '') + endpoint, { method: 'POST', body: form })
+          .then(function (response) { return response.json().then(function (data) { if (!response.ok) throw new Error(data.detail || 'Analysis failed.'); return data; }); })
+          .then(function (data) { if (runPipeline) pipelineResult(data); else tenderResult(data); state.textContent = runPipeline ? 'Analysis complete.' : 'Review the requirements, then run the compliance check.'; renderFiles(); })
+          .catch(function (error) { state.textContent = error.message; })
+          .finally(function () { run.disabled = false; });
+      });
+      renderFiles();
+    })();
+  </script>
+
+  <style is:global>
+    #requirementsList{padding:0 0 14px; overflow:visible; background:var(--paper-raised);}
+    .req-toolbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 18px; border-bottom:1px solid var(--line); background:var(--surface);}
+    .req-toolbar-title{display:block; font-size:15px; font-weight:650; color:var(--ink);}
+    .req-toolbar-note{display:block; margin-top:3px; font-size:12.5px; color:var(--ink-soft);}
+    .req-count{font-family:var(--mono); font-size:10.5px; color:var(--ink-muted); white-space:nowrap;}
+    .req-group{margin:14px 14px 0; padding:0; border:1px solid var(--line-strong); border-radius:var(--r-md); background:var(--surface); overflow:hidden; box-shadow:var(--shadow-xs); transition:border-color .16s ease, opacity .16s ease;}
+    .req-group.is-off{border-color:var(--line);}
+    .req-group-head{display:grid; grid-template-columns:38px minmax(0,1fr) auto; gap:12px; align-items:center; padding:13px 14px; border-bottom:1px solid var(--line); background:linear-gradient(180deg,var(--surface),var(--paper-raised));}
+    .req-index{width:32px; height:32px; display:grid; place-items:center; border:1px solid var(--line-strong); border-radius:50%; font-family:var(--mono); font-size:10.5px; color:var(--ink-muted); background:var(--surface);}
+    .req-identity{min-width:0;}
+    .req-identity h3{font-size:15px; font-weight:650; color:var(--ink); line-height:1.25;}
+    .req-meta{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:7px;}
+    .req-chip{display:inline-flex; align-items:center; min-height:22px; padding:3px 8px; border:1px solid var(--line); border-radius:var(--r-pill); background:var(--paper-raised); font-family:var(--mono); font-size:9.5px; color:var(--ink-muted); line-height:1.2; text-transform:none; letter-spacing:.01em;}
+    .req-chip.evidence{color:var(--info); background:var(--info-soft); border-color:rgba(46,74,139,.18);}
+    .req-chip.threshold{color:var(--flag); background:var(--flag-soft); border-color:rgba(180,97,28,.2);}
+    .req-group-actions{display:flex; align-items:center; justify-content:flex-end; gap:12px; flex-wrap:wrap;}
+    .req-status{display:inline-flex; align-items:center; min-height:24px; padding:3px 9px; border:1px solid var(--line-strong); border-radius:var(--r-pill); font-family:var(--mono); font-size:9.5px; white-space:nowrap;}
+    .req-status.required{color:var(--flag); background:var(--flag-soft); border-color:rgba(180,97,28,.22);}
+    .req-status.review{color:var(--info); background:var(--info-soft); border-color:rgba(46,74,139,.2);}
+    .req-status.included{color:var(--verify-ink); background:var(--verify-soft); border-color:rgba(27,122,90,.22);}
+    .req-status.neutral{color:var(--ink-muted); background:var(--paper-raised);}
+    .req-group-body{padding:13px 14px 14px;}
+    .req-description{font-size:12.5px; line-height:1.5; color:var(--ink-soft); max-width:82ch;}
+    .req-condition{display:grid; grid-template-columns:auto minmax(0,1fr); gap:10px; align-items:start; margin-top:10px; padding:9px 10px; border-left:3px solid var(--info); border-radius:0 var(--r-sm) var(--r-sm) 0; background:var(--info-soft);}
+    .req-condition-label{font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--info); text-transform:uppercase; letter-spacing:.06em;}
+    .req-condition-text{font-size:12px; color:var(--ink-soft); line-height:1.45;}
+    .req-children{margin-top:12px; border:1px solid var(--line); border-radius:var(--r-sm); overflow:hidden;}
+    .req-child{display:grid; grid-template-columns:22px minmax(0,1fr) auto; gap:11px; align-items:start; padding:12px; border-bottom:1px solid var(--line); background:var(--surface); transition:background .14s ease, opacity .14s ease;}
+    .req-child:last-child{border-bottom:none;}
+    .req-child:hover{background:var(--paper-raised);}
+    .req-child.is-off{opacity:.58;}
+    .req-child-mark{width:20px; height:20px; display:grid; place-items:center; margin-top:1px; border-radius:50%; color:var(--verify); background:var(--verify-soft); font-size:11px; font-weight:700;}
+    .req-child.is-off .req-child-mark{color:var(--ink-muted); background:var(--paper-raised);}
+    .req-child-main{min-width:0;}
+    .req-child-top{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+    .req-child-top h4{font-size:13.5px; font-weight:650; color:var(--ink); line-height:1.35;}
+    .req-child-description{margin-top:4px; font-size:12px; color:var(--ink-soft); line-height:1.45;}
+    .req-source{margin-top:9px; border-top:1px dashed var(--line); padding-top:8px;}
+    .req-source summary{width:max-content; max-width:100%; cursor:pointer; font-family:var(--mono); font-size:10px; color:var(--info); list-style-position:inside;}
+    .req-source p{margin:8px 0 0; padding:9px 10px; border-radius:var(--r-sm); background:var(--paper-raised); font-family:var(--mono); font-size:10.5px; line-height:1.55; color:var(--ink-soft);}
+    .req-toggle{display:inline-flex; align-items:center; gap:7px; cursor:pointer; user-select:none; white-space:nowrap;}
+    .req-toggle input{position:absolute; opacity:0; pointer-events:none;}
+    .req-toggle-track{position:relative; width:30px; height:17px; border-radius:var(--r-pill); background:var(--line-strong); transition:background .15s ease;}
+    .req-toggle-track::after{content:""; position:absolute; width:13px; height:13px; left:2px; top:2px; border-radius:50%; background:var(--surface); box-shadow:0 1px 2px rgba(28,26,21,.2); transition:transform .15s ease;}
+    .req-toggle input:checked + .req-toggle-track{background:var(--verify);}
+    .req-toggle input:checked + .req-toggle-track::after{transform:translateX(13px);}
+    .req-toggle input:disabled + .req-toggle-track{background:var(--line-strong);}
+    .req-toggle:has(input:disabled){opacity:.55; cursor:not-allowed;}
+    .req-toggle input:focus-visible + .req-toggle-track{outline:2px solid var(--seal); outline-offset:2px;}
+    .req-toggle-label{font-size:11px; color:var(--ink-soft);}
+    @media (max-width:720px){
+      .req-toolbar{align-items:flex-start;}
+      .req-group-head{grid-template-columns:32px minmax(0,1fr);}
+      .req-group-actions{grid-column:1 / -1; justify-content:space-between; padding-left:44px;}
+      .req-child{grid-template-columns:20px minmax(0,1fr);}
+      .req-child > .req-toggle{grid-column:2; margin-top:4px;}
+      .req-child-top{align-items:flex-start;}
+    }
+  </style>
+</AppLayout>

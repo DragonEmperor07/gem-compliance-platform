@@ -1,0 +1,344 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import LiveAnalysis from '../../components/LiveAnalysis.astro';
+import { tender, focus, groups, findings, recommendation, auditTrail, officer } from '../../data/mock';
+
+const base = import.meta.env.BASE_URL;
+
+const checkTotal = groups.reduce((n, g) => n + g.checks.length, 0);
+const groupStats = groups.map((g) => ({
+  title: g.title,
+  ok: g.checks.filter((c) => c.verdict === 'ok').length,
+  total: g.checks.length,
+  bad: g.checks.some((c) => c.verdict === 'alert'),
+}));
+
+const sections = [
+  { id: 'identity', t: 'Cover & identifiers', d: 'Bidder, entity, registration numbers, tender reference', pg: 1, locked: true },
+  { id: 'score', t: 'Compliance score & risk', d: 'Score, risk band, checks passed, open findings', pg: 1, locked: false },
+  { id: 'checks', t: 'Check-by-check evidence', d: `All ${checkTotal} checks with source, value and timestamp`, pg: 6, locked: false },
+  { id: 'findings', t: 'Findings & blocking clauses', d: `${findings.length} findings, severity-ranked, clause references`, pg: 2, locked: false },
+  { id: 'rec', t: 'Engine recommendation & limits', d: 'Verdict, confidence and the stated caveats', pg: 1, locked: false },
+  { id: 'audit', t: 'Audit trail extract', d: `${auditTrail.length} timestamped events with actor`, pg: 2, locked: false },
+  { id: 'decision', t: 'Officer decision & sign-off', d: 'Decision, written reason, officer name and time', pg: 1, locked: false },
+];
+
+const recent = [
+  { ref: 'PRM/4471/B07-01', bidder: 'Saraswati Industrial Works', kind: 'Full record', when: '08 Sep · 11:02', size: '412 KB' },
+  { ref: 'PRM/4471/B03-01', bidder: 'Meridian Scientific', kind: 'Full record', when: '08 Sep · 10:48', size: '388 KB' },
+  { ref: 'PRM/4471/CMP-02', bidder: 'All 12 bidders', kind: 'Comparison', when: '08 Sep · 10:20', size: '1.1 MB' },
+  { ref: 'PRM/4398/B21-01', bidder: 'Deccan Analytical Systems', kind: 'Full record', when: '07 Sep · 16:35', size: '356 KB' },
+];
+
+const rcols = 'minmax(0,1.2fr) minmax(0,1.1fr) 110px 118px 78px';
+const tick = '<path d="m5 13 4 4L19 7"/>';
+---
+
+<AppLayout title="Generate report — Pramaan" active="reports" crumbs={[{ label: 'Reports' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Generate report</h1>
+      <div class="meta-row">
+        <span>{tender.id}</span>
+        <span>{focus.name}</span>
+        <span>Record as at <b>08 Sep 09:14 IST</b></span>
+        <span id="pgCount"><b>14</b> pages</span>
+      </div>
+    </div>
+    <div class="acts">
+      <button class="btn-sm" type="button" data-ask="What goes into a generated report?">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m15.6 15.6 4.2 4.2"/></svg>
+        Ask about this
+      </button>
+      <a class="btn-sm" href={`${base}app/bidder`}>Open record</a>
+    </div>
+  </div>
+
+  <LiveAnalysis />
+
+  <div class="rb">
+    <div class="stack">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Report contents</h2>
+          <span class="note">Toggling a section redraws the preview</span>
+        </div>
+        <div class="panel-body">
+          {sections.map((s) => (
+            <label class="rbrow">
+              <input type="checkbox" data-sec={s.id} checked disabled={s.locked} />
+              <span style="min-width:0;">
+                <span class="t">{s.t}</span>
+                <span class="d">{s.d}</span>
+              </span>
+              <span class="pg">{s.pg} pp</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Format &amp; sign-off</h2></div>
+        <div class="panel-body">
+          <div class="seg" role="radiogroup" aria-label="Output format">
+            <label>
+              <input type="radio" name="fmt" value="PDF" checked />
+              <span>PDF</span>
+            </label>
+            <label>
+              <input type="radio" name="fmt" value="CSV" />
+              <span>CSV</span>
+            </label>
+            <label>
+              <input type="radio" name="fmt" value="JSON" />
+              <span>JSON</span>
+            </label>
+          </div>
+
+          <div style="margin-top:6px;">
+            <label class="rbrow">
+              <input type="checkbox" checked />
+              <span>
+                <span class="t">Link every value to its source record</span>
+                <span class="d">Each figure carries the portal and retrieval timestamp it came from.</span>
+              </span>
+            </label>
+            <label class="rbrow">
+              <input type="checkbox" checked />
+              <span>
+                <span class="t">Sign as {officer.name}</span>
+                <span class="d">{officer.role} · {officer.office}</span>
+              </span>
+            </label>
+            <label class="rbrow">
+              <input type="checkbox" />
+              <span>
+                <span class="t">Attach source documents</span>
+                <span class="d">Adds the four extracted documents as an annexure.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="decide-foot">
+          <button class="btn-sm solid" type="button" id="genBtn">Generate report</button>
+          <button class="btn-sm" type="button">Schedule for close of tender</button>
+          <span class="saved" id="genSaved">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" set:html={tick}></svg>
+            Generated
+          </span>
+        </div>
+        <div class="genbar" id="genBar" hidden>
+          <span id="genLabel">Assembling</span>
+          <span class="track"><i id="genFill"></i></span>
+          <span id="genPct">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Preview</h2>
+        <span class="note" id="prevNote">PDF · 14 pages</span>
+      </div>
+      <div class="sheet-wrap">
+        <div class="sheet" id="sheet">
+          <div class="stamp" aria-hidden="true">Demo<br />environment</div>
+
+          <div class="sheet-h">
+            <div>
+              <div class="org">Compliance verification record</div>
+              <div class="sub">Government e-Marketplace · Pramaan</div>
+            </div>
+            <div class="ref">
+              PRM/4471/B11-01<br />
+              {tender.id}<br />
+              08 Sep 2026
+            </div>
+          </div>
+
+          <div class="sheet-sec" data-pane="identity">
+            <h4>Bidder</h4>
+            <div class="sheet-kv">
+              <span class="k">Name</span><span class="v">{focus.name}</span>
+              <span class="k">Entity</span><span class="v">{focus.entity}</span>
+              <span class="k">Place</span><span class="v">{focus.city}</span>
+              <span class="k">Incorporated</span><span class="v">{focus.incorporated}</span>
+              {focus.ids.map((i) => (<><span class="k">{i.k}</span><span class="v">{i.v}</span></>))}
+              <span class="k">Tender</span><span class="v">{tender.title} · {tender.value}</span>
+            </div>
+          </div>
+
+          <div class="sheet-sec" data-pane="score">
+            <h4>Compliance score</h4>
+            <div class="sheet-score">
+              <div class="big">{focus.score}<small>/100</small></div>
+              <div class="sc-note">
+                {focus.risk} risk · {focus.checksPassed} of {focus.checksTotal} checks passed ·
+                {' '}{findings.length} findings open. The score is advisory; qualification is
+                determined by the conditions stated in the tender.
+              </div>
+            </div>
+          </div>
+
+          <div class="sheet-sec" data-pane="checks">
+            <h4>Verification summary</h4>
+            {groupStats.map((g) => (
+              <div class="sheet-line">
+                <span class="l">{g.title}</span>
+                <span class={`r ${g.bad ? 'no' : 'yes'}`}>{g.ok} / {g.total} matched</span>
+              </div>
+            ))}
+          </div>
+
+          <div class="sheet-sec" data-pane="findings">
+            <h4>Findings</h4>
+            {findings.map((f) => (
+              <div class="sheet-line">
+                <span class="l">{f.title}</span>
+                <span class={`r ${f.severity === 'high' ? 'no' : ''}`}>{f.severity}</span>
+              </div>
+            ))}
+          </div>
+
+          <div class="sheet-sec" data-pane="rec">
+            <h4>Engine recommendation</h4>
+            <p><b>{recommendation.verdict}</b> · confidence {recommendation.confidence.toFixed(2)}</p>
+            <p>{recommendation.summary}</p>
+            <p>{recommendation.caveats[0]}</p>
+          </div>
+
+          <div class="sheet-sec" data-pane="audit">
+            <h4>Audit extract</h4>
+            {auditTrail.slice(0, 5).map((a) => (
+              <div class="sheet-line">
+                <span class="l">{a.action} — {a.actor}</span>
+                <span class="r">{a.ts.replace('08 Sep · ', '')}</span>
+              </div>
+            ))}
+          </div>
+
+          <div class="sheet-sec" data-pane="decision">
+            <h4>Officer decision</h4>
+            <div class="sheet-sign">
+              <div class="box">
+                <div class="k">Decision</div>
+                <div class="v">Clarification sought — clause 7.2</div>
+              </div>
+              <div class="box">
+                <div class="k">Recorded by</div>
+                <div class="v">{officer.name} · {officer.role}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sheet-foot">
+            Produced by Pramaan from the verification record of 08 Sep 2026, 09:14 IST. Every value
+            in this report is traceable to the source record that produced it. Prototype output —
+            figures are illustrative and no live government portal was queried.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:14px;">
+    <div class="panel-head">
+      <h2>Recent reports</h2>
+      <span class="note">Retained for the audit period set by the procuring entity</span>
+    </div>
+    <div class="panel-body flush">
+      <div class="tbl">
+        <div class="tr th" style={`grid-template-columns:${rcols};`}>
+          <span>Reference</span>
+          <span>Subject</span>
+          <span>Type</span>
+          <span>Generated</span>
+          <span>Size</span>
+        </div>
+        {recent.map((r) => (
+          <div class="tr row" style={`grid-template-columns:${rcols};`}>
+            <span class="mono-cell" style="color:var(--ink);">{r.ref}</span>
+            <span style="font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{r.bidder}</span>
+            <span><span class="bdg na">{r.kind}</span></span>
+            <span class="mono-cell">{r.when}</span>
+            <span class="mono-cell">{r.size}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var boxes = Array.prototype.slice.call(document.querySelectorAll('input[data-sec]'));
+      var sheet = document.getElementById('sheet');
+      var pgCount = document.getElementById('pgCount');
+      var prevNote = document.getElementById('prevNote');
+      var pages = { identity: 1, score: 1, checks: 6, findings: 2, rec: 1, audit: 2, decision: 1 };
+      if (!boxes.length || !sheet) return;
+
+      function fmt() {
+        var f = document.querySelector('input[name="fmt"]:checked');
+        return f ? f.value : 'PDF';
+      }
+
+      function draw() {
+        var n = 0;
+        boxes.forEach(function (b) {
+          var id = b.getAttribute('data-sec');
+          var pane = sheet.querySelector('[data-pane="' + id + '"]');
+          if (pane) pane.hidden = !b.checked;
+          if (b.checked) n += pages[id] || 1;
+        });
+        if (pgCount) pgCount.innerHTML = '<b>' + n + '</b> page' + (n === 1 ? '' : 's');
+        if (prevNote) prevNote.textContent = fmt() + ' · ' + n + ' page' + (n === 1 ? '' : 's');
+      }
+
+      boxes.forEach(function (b) { b.addEventListener('change', draw); });
+      document.querySelectorAll('input[name="fmt"]').forEach(function (r) {
+        r.addEventListener('change', draw);
+      });
+      draw();
+
+      // generating should visibly produce something
+      var gen = document.getElementById('genBtn');
+      var bar = document.getElementById('genBar');
+      var fill = document.getElementById('genFill');
+      var pct = document.getElementById('genPct');
+      var label = document.getElementById('genLabel');
+      var saved = document.getElementById('genSaved');
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (gen && bar && fill && pct) {
+        var phases = [
+          [22, 'Reading the record'],
+          [48, 'Rendering evidence'],
+          [74, 'Attaching sources'],
+          [92, 'Signing'],
+          [100, 'Complete'],
+        ];
+        gen.addEventListener('click', function () {
+          if (gen.disabled) return;
+          gen.disabled = true;
+          if (saved) saved.classList.remove('on');
+          bar.hidden = false;
+          var i = 0;
+          (function step() {
+            if (i === phases.length) {
+              gen.disabled = false;
+              if (saved) saved.classList.add('on');
+              if (label) label.textContent = 'PRM/4471/B11-02 · ' + fmt();
+              setTimeout(function () { bar.hidden = true; if (saved) saved.classList.remove('on'); }, 5000);
+              return;
+            }
+            fill.style.width = phases[i][0] + '%';
+            pct.textContent = phases[i][0] + '%';
+            if (label) label.textContent = phases[i][1];
+            i++;
+            setTimeout(step, reduce ? 40 : 380);
+          })();
+        });
+      }
+    })();
+  </script>
+</AppLayout>

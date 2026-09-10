@@ -1,0 +1,119 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import LiveAnalysis from '../../components/LiveAnalysis.astro';
+import { auditTrail, tender, focus } from '../../data/mock';
+
+/* Actors classify into four kinds; the counts are counted from the trail. */
+const kindOf = (actor: string) =>
+  actor === 'system' ? 'system'
+  : actor === 'engine' ? 'engine'
+  : /^[a-z]/.test(actor) ? 'system'
+  : actor.includes('.') || actor.includes(' ') ? 'officer'
+  : 'portal';
+
+const kinds = auditTrail.map((a) => kindOf(a.actor));
+const count = (k: string) => kinds.filter((x) => x === k).length;
+
+const tabs = [
+  { key: 'all', label: 'All actors', n: auditTrail.length },
+  { key: 'system', label: 'system', n: count('system') },
+  { key: 'portal', label: 'portal', n: count('portal') },
+  { key: 'engine', label: 'engine', n: count('engine') },
+  { key: 'officer', label: 'officer', n: count('officer') },
+];
+---
+
+<AppLayout title="Audit trail — Pramaan console" active="audit" crumbs={[{ label: 'Audit trail' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Audit trail</h1>
+      <div class="meta-row">
+        <span><b>GEM/2026/B/4471</b></span>
+        <span>Bidder 11</span>
+        <span><b>{auditTrail.length}</b> entries</span>
+        <span>Append-only</span>
+        <span>Retained 7 years</span>
+      </div>
+    </div>
+    <div class="acts">
+      <button class="btn-sm" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v6l-4 2v-8L4 5Z"/></svg>
+        Filter by actor
+      </button>
+      <button class="btn-sm solid" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M4.5 20h15"/></svg>
+        Export for audit
+      </button>
+    </div>
+  </div>
+
+  <LiveAnalysis />
+
+  <div class="panel">
+    <div class="panel-head">
+      <div style="min-width:0;">
+        <h2>{focus.name}</h2>
+        <span class="note">{tender.id} · {focus.seq}</span>
+      </div>
+      <span class="bdg ok">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="10" rx="2"/><path d="M8.5 10V7a3.5 3.5 0 0 1 7 0v3"/></svg>
+        Sealed · sha256:9f3c…a71e
+      </span>
+    </div>
+    <div class="tabs" data-ftabs="atrail" role="tablist" aria-label="Filter by actor" style="margin:0; padding:0 14px; border-bottom:1px solid var(--line);">
+      {tabs.map((t, i) => (
+        <button
+          class={`tab${i === 0 ? ' on' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={i === 0 ? 'true' : 'false'}
+          tabindex={i === 0 ? 0 : -1}
+          data-filter={t.key}
+        >
+          {t.label} <span class="n">{t.n}</span>
+        </button>
+      ))}
+    </div>
+
+    <div class="toolbar">
+      <div class="inline-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <input type="search" data-fsearch="atrail" placeholder="Filter entries…" aria-label="Filter audit entries" />
+      </div>
+      <div class="tool-right">
+        <span class="mono-cell num" data-fcount="atrail">0 rows</span>
+        <span style="font-family:var(--mono); font-size:11px; color:var(--ink-muted);">08 Sep 2026</span>
+      </div>
+    </div>
+
+    <div class="panel-body flush">
+      <div class="trail" id="atrail" data-ftable>
+        {auditTrail.map((a) => (
+          <div
+            class={`titem ${a.tone}`}
+            data-frow
+            data-status={kindOf(a.actor)}
+            data-text={`${a.action} ${a.actor} ${a.detail}`.toLowerCase()}
+          >
+            <span class="ts">{a.ts}</span>
+            <span class="rail"><span class="dot"></span></span>
+            <div class="c">
+              <div class="ac">
+                {a.action}
+                <span class="by">{a.actor}</span>
+              </div>
+              <div class="dt">{a.detail}</div>
+            </div>
+          </div>
+        ))}
+
+        <div class="empty" data-fempty="atrail">
+          <div class="t">No entry matches that filter</div>
+          <div class="d">Nothing in this trail matches the current actor and search.</div>
+          <button class="btn-sm" type="button" data-freset="atrail">Clear filters</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</AppLayout>

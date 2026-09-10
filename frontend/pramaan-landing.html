@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pramaan — Verified bidder compliance for GeM procurement</title>
+<meta name="description" content="Pramaan connects to Udyam, GSTN, PAN, EPFO, MCA21 and DigiLocker to verify GeM bidder compliance automatically, giving procurement officers a single auditable record instead of eight open tabs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1F27;
+    --ink-soft:#4A5058;
+    --paper:#EAF0EA;
+    --paper-raised:#F4F7F3;
+    --navy:#16233D;
+    --navy-deep:#0F1A2E;
+    --verify:#1F7A5C;
+    --verify-soft:#E4F0E9;
+    --flag:#C1691F;
+    --flag-soft:#F6E9DC;
+    --seal:#A67C3D;
+    --line:rgba(20,24,31,0.14);
+    --line-on-navy:rgba(234,240,234,0.18);
+    --serif:'Fraunces', serif;
+    --sans:'IBM Plex Sans', sans-serif;
+    --mono:'IBM Plex Mono', monospace;
+    --maxw:1180px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{
+    font-family:var(--serif);
+    font-weight:600;
+    line-height:1.08;
+    margin:0;
+    color:var(--ink);
+  }
+
+  p{margin:0;}
+  a{color:inherit;}
+
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 32px;}
+
+  /* ---------- ledger paper texture ---------- */
+  .ledger-lines{
+    background-image:repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      rgba(22,35,61,0.045) 28px
+    );
+  }
+
+  a:focus-visible, button:focus-visible{
+    outline:2.5px solid var(--seal);
+    outline-offset:3px;
+    border-radius:2px;
+  }
+
+  /* ---------- NAV ---------- */
+  header.nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(234,240,234,0.86);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 32px;
+    max-width:var(--maxw); margin:0 auto;
+  }
+  .wordmark{
+    font-family:var(--serif); font-weight:700; font-size:22px;
+    display:flex; align-items:baseline; gap:8px;
+    letter-spacing:-0.01em;
+  }
+  .wordmark .mark{
+    width:9px; height:9px; border-radius:50%;
+    background:var(--verify); display:inline-block;
+    transform:translateY(-2px);
+  }
+  nav.links{display:flex; gap:34px;}
+  nav.links a{
+    font-size:15px; text-decoration:none; color:var(--ink-soft);
+    transition:color .15s ease;
+    position:relative; padding-bottom:3px;
+  }
+  nav.links a::after{
+    content:''; position:absolute; left:0; right:100%; bottom:0; height:1.5px;
+    background:var(--seal); transition:right .2s ease;
+  }
+  nav.links a:hover{color:var(--ink);}
+  nav.links a:hover::after, nav.links a.active::after{right:0;}
+  nav.links a.active{color:var(--ink);}
+  .nav-tag{
+    font-family:var(--mono); font-size:12.5px; color:var(--ink-soft);
+    border:1px solid var(--line); padding:5px 11px; border-radius:20px;
+    white-space:nowrap;
+  }
+  @media (max-width: 760px){ nav.links{display:none;} }
+
+  section[id]{ scroll-margin-top:78px; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding:88px 0 64px;
+  }
+  .hero-grid{
+    display:grid; grid-template-columns:1.15fr 0.85fr; gap:64px; align-items:center;
+  }
+  .hero h1{
+    font-size:clamp(36px, 4.6vw, 56px);
+    max-width:16ch;
+  }
+  .hero .lede{
+    margin-top:22px; font-size:18px; color:var(--ink-soft); max-width:46ch;
+  }
+  .hero .cta-row{
+    display:flex; gap:20px; align-items:center; margin-top:34px; flex-wrap:wrap;
+  }
+  .btn-primary{
+    background:var(--navy); color:#F4F7F3; border:none;
+    font-family:var(--sans); font-weight:600; font-size:15.5px;
+    padding:14px 26px; border-radius:6px; cursor:pointer;
+    text-decoration:none; display:inline-block;
+    transition:background .15s ease, transform .15s ease;
+  }
+  .btn-primary:hover{background:var(--navy-deep); transform:translateY(-1px);}
+  .btn-primary:active{transform:translateY(0); background:var(--navy-deep);}
+  .btn-ghost{
+    font-size:15.5px; font-weight:600; text-decoration:none; color:var(--ink);
+    border-bottom:1.5px solid var(--seal); padding-bottom:2px;
+  }
+
+  /* verification diagram: portals converging into one scored record */
+  .seal-wrap{
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .seal-wrap::before{
+    content:''; position:absolute; inset:8% ; border-radius:50%;
+    background:radial-gradient(circle, rgba(166,124,61,0.10) 0%, rgba(166,124,61,0) 70%);
+    pointer-events:none;
+  }
+  .seal-svg{ width:100%; max-width:380px; height:auto; position:relative; }
+
+  .conn{
+    stroke:var(--seal); stroke-width:1.3; opacity:0.8;
+    stroke-dasharray:170; stroke-dashoffset:170;
+    animation:draw 0.45s ease forwards;
+  }
+  .conn-1{animation-delay:.15s;} .conn-2{animation-delay:.28s;}
+  .conn-3{animation-delay:.41s;} .conn-4{animation-delay:.54s;}
+  .conn-5{animation-delay:.67s;} .conn-6{animation-delay:.80s;}
+  .conn-7{animation-delay:.93s;} .conn-8{animation-delay:1.06s;}
+
+  .node circle{ fill:var(--paper); stroke:var(--navy); stroke-width:1.5; }
+  .node text{ font-family:var(--mono); font-size:10px; fill:var(--ink-soft); }
+  .node{ opacity:0; animation:fadein .35s ease forwards; }
+  .node-1{animation-delay:.4s;} .node-2{animation-delay:.53s;}
+  .node-3{animation-delay:.66s;} .node-4{animation-delay:.79s;}
+  .node-5{animation-delay:.92s;} .node-6{animation-delay:1.05s;}
+  .node-7{animation-delay:1.18s;} .node-8{animation-delay:1.31s;}
+
+  .doc-rect{ fill:var(--paper-raised); stroke:var(--navy); stroke-width:1.6; }
+  .doc-fold{ fill:var(--paper); stroke:var(--navy); stroke-width:1.2; }
+  .doc-field{ stroke:var(--line); stroke-width:2; }
+
+  .badge{
+    opacity:0; transform:translateY(6px); transform-box:fill-box; transform-origin:center;
+    animation:badgein .4s 1.55s ease forwards;
+    filter:drop-shadow(0 3px 8px rgba(31,122,92,0.38));
+  }
+  @keyframes badgein{ to{ opacity:1; transform:translateY(0); } }
+
+  .ripple{
+    opacity:0.7; transform:scale(1); transform-box:fill-box; transform-origin:center;
+    animation:ripple .9s 1.55s ease-out forwards;
+  }
+  @keyframes ripple{ to{ opacity:0; transform:scale(2.8); } }
+
+  .s-label{ font-family:var(--mono); font-size:11.5px; fill:var(--ink-soft);
+    opacity:0; animation:fadein .4s 1.7s ease forwards; }
+  .s-value{ font-family:var(--serif); font-weight:600; font-size:30px; fill:var(--verify);
+    opacity:0; animation:fadein .4s 1.7s ease forwards; }
+  .s-risk{ font-family:var(--mono); font-size:13px; fill:var(--ink-soft); font-weight:400; }
+
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  @keyframes fadein{ to{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){
+    .conn{stroke-dashoffset:0;}
+    .node,.badge,.s-label,.s-value{opacity:1; transform:none;}
+    .ripple{display:none;}
+  }
+
+  @media (max-width: 900px){
+    .hero-grid{grid-template-columns:1fr; gap:40px;}
+    .seal-wrap{order:-1;}
+    .seal-svg{max-width:260px;}
+  }
+
+  /* ---------- scattered portal chips ---------- */
+  .chip-row{
+    margin-top:56px; padding-top:40px; border-top:1px solid var(--line);
+  }
+  .chip-row .label{
+    font-family:var(--mono); font-size:13px; color:var(--ink-soft); margin-bottom:18px; display:block;
+  }
+  .chips{
+    display:flex; flex-wrap:wrap; gap:10px 12px;
+  }
+  .chip{
+    font-family:var(--mono); font-size:13px; color:var(--ink);
+    background:var(--paper-raised); border:1px solid var(--line);
+    padding:7px 13px; border-radius:5px;
+    transition:border-color .15s ease, transform .15s ease;
+  }
+  .chip:hover{ border-color:var(--seal); transform:translateY(-2px); }
+  .chip:nth-child(3n){transform:rotate(-1.1deg);}
+  .chip:nth-child(4n){transform:rotate(0.9deg);}
+
+  /* ---------- SECTION shell ---------- */
+  section{padding:88px 0;}
+  .section-head{max-width:640px; margin-bottom:52px;}
+  .section-head h2{font-size:clamp(28px,3.2vw,38px);}
+  .section-head p{margin-top:16px; font-size:17px; color:var(--ink-soft);}
+
+  /* ---------- PROBLEM ---------- */
+  .problem{border-top:1px solid var(--line);}
+  .problem-grid{display:grid; grid-template-columns:1fr 1fr; gap:56px;}
+  .problem-copy p{font-size:16.5px; color:var(--ink-soft); margin-bottom:16px;}
+  .problem-copy p:last-child{margin-bottom:0;}
+
+  .today-list{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:8px;
+    padding:8px 0;
+  }
+  .today-list .row{
+    display:flex; justify-content:space-between; gap:16px;
+    padding:15px 22px; border-bottom:1px solid var(--line);
+    font-size:15px;
+  }
+  .today-list .row:last-child{border-bottom:none;}
+  .today-list .task{color:var(--ink);}
+  .today-list .status{
+    font-family:var(--mono); font-size:12.5px; color:var(--flag);
+    white-space:nowrap;
+  }
+  @media (max-width:860px){ .problem-grid{grid-template-columns:1fr;} }
+
+  /* ---------- HOW IT WORKS (sequence — numbers justified) ---------- */
+  .steps{border-top:1px solid var(--line);}
+  .step-list{display:flex; flex-direction:column;}
+  .step{
+    display:grid; grid-template-columns:64px 1fr; gap:24px;
+    padding:30px 0; border-bottom:1px solid var(--line);
+    border-left:2px solid transparent; padding-left:14px; margin-left:-16px;
+    transition:border-color .18s ease;
+  }
+  .step:hover{ border-left-color:var(--seal); }
+  .step:last-child{border-bottom:none;}
+  .step .num{
+    font-family:var(--serif); font-size:30px; color:var(--seal); font-weight:600;
+    transition:transform .18s ease;
+  }
+  .step:hover .num{ transform:translateX(3px); }
+  .step h3{font-size:19px; font-weight:600; margin-bottom:8px;}
+  .step p{color:var(--ink-soft); font-size:15.5px; max-width:56ch;}
+
+  /* ---------- CAPABILITIES (ledger rows, not cards) ---------- */
+  .capabilities{border-top:1px solid var(--line);}
+  .cap-table{border-top:1px solid var(--line);}
+  .cap-row{
+    display:grid; grid-template-columns:220px 1fr; gap:28px;
+    padding:24px 0; border-bottom:1px solid var(--line);
+    border-left:2px solid transparent; padding-left:14px; margin-left:-16px;
+    transition:border-color .18s ease;
+  }
+  .cap-row:hover{ border-left-color:var(--seal); }
+  .cap-row .cap-title{
+    font-family:var(--serif); font-weight:600; font-size:17.5px;
+  }
+  .cap-row p{color:var(--ink-soft); font-size:15px;}
+  @media (max-width:700px){
+    .cap-row{grid-template-columns:1fr; gap:8px;}
+  }
+
+  /* ---------- IMPACT (dark ledger totals strip) ---------- */
+  .impact{
+    background:var(--navy); color:#EAF0EA; padding:80px 0;
+  }
+  .impact .section-head h2{color:#F4F7F3;}
+  .impact .section-head p{color:rgba(234,240,234,0.7);}
+  .impact-grid{
+    display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--line-on-navy);
+    opacity:0; transform:translateY(14px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .impact-grid.in-view{ opacity:1; transform:translateY(0); }
+  .impact-cell{
+    padding:28px 26px 0; border-right:1px solid var(--line-on-navy);
+  }
+  .impact-cell:last-child{border-right:none;}
+  .impact-cell .num{
+    font-family:var(--serif); font-size:clamp(30px,3vw,42px); font-weight:600; color:#F4F7F3;
+  }
+  .impact-cell .desc{
+    margin-top:10px; font-size:14.5px; color:rgba(234,240,234,0.68); max-width:22ch;
+  }
+  @media (max-width:860px){
+    .impact-grid{grid-template-columns:1fr 1fr;}
+    .impact-cell{border-bottom:1px solid var(--line-on-navy); padding-bottom:26px;}
+  }
+  @media (max-width:520px){
+    .impact-grid{grid-template-columns:1fr;}
+  }
+
+  /* ---------- CLOSING CTA ---------- */
+  .closing{text-align:left; border-top:1px solid var(--line);}
+  .closing-inner{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:32px; flex-wrap:wrap;
+  }
+  .closing h2{font-size:clamp(26px,3vw,36px); max-width:20ch;}
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top:1px solid var(--line); padding:36px 0; 
+  }
+  .footer-inner{
+    display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+    font-size:13.5px; color:var(--ink-soft);
+  }
+  .footer-inner .tag{font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="wordmark"><span class="mark"></span>Pramaan</div>
+    <nav class="links">
+      <a href="#problem">The problem</a>
+      <a href="#how">How it works</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#impact">Impact</a>
+    </nav>
+    <span class="nav-tag">SIH 2026 · PS26100</span>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <h1>Get the paperwork done — before the tender clock runs out.</h1>
+          <p class="lede">Pramaan connects to Udyam, GSTN, PAN, MCA21, EPFO, ESIC and DigiLocker to verify GeM bidder eligibility automatically — turning a document-intensive, multi-portal check into one auditable compliance record. The procurement officer still makes the call. Pramaan just makes sure they're deciding on complete, verified information.</p>
+          <div class="cta-row">
+            <a class="btn-primary" href="#how">See how it works</a>
+            <a class="btn-ghost" href="#capabilities">View capabilities</a>
+          </div>
+        </div>
+
+        <div class="seal-wrap">
+          <svg class="seal-svg" viewBox="0 0 360 400" role="img" aria-label="Diagram showing eight government portals — Udyam, GSTN, PAN, MCA21, EPFO, ESIC, DigiLocker and NSIC — feeding verification data into a single bidder record, which resolves to a compliance score of 96 and a low risk classification">
+            <!-- connections: node -> center, curved for a less mechanical feel -->
+            <g fill="none">
+              <path class="conn conn-1" d="M180,40 Q166,100 180,160"/>
+              <path class="conn conn-2" d="M279,81 Q233,100 205,140"/>
+              <path class="conn conn-3" d="M320,180 Q272,166 224,180"/>
+              <path class="conn conn-4" d="M279,279 Q251,239 205,220"/>
+              <path class="conn conn-5" d="M180,320 Q194,279 180,238"/>
+              <path class="conn conn-6" d="M81,279 Q127,260 155,220"/>
+              <path class="conn conn-7" d="M40,180 Q88,194 136,180"/>
+              <path class="conn conn-8" d="M81,81 Q109,122 155,140"/>
+            </g>
+
+            <!-- the bidder record -->
+            <rect class="doc-rect" x="136" y="122" width="88" height="116" rx="6"/>
+            <path class="doc-fold" d="M204 122 L224 142 L204 142 Z"/>
+            <line class="doc-field" x1="150" y1="156" x2="210" y2="156"/>
+            <line class="doc-field" x1="150" y1="174" x2="210" y2="174"/>
+            <line class="doc-field" x1="150" y1="192" x2="196" y2="192"/>
+            <line class="doc-field" x1="150" y1="210" x2="204" y2="210"/>
+
+            <!-- verified badge on the record's corner, with a settling ripple -->
+            <circle class="ripple" cx="222" cy="232" r="15" fill="none" stroke="var(--verify)" stroke-width="2"/>
+            <g class="badge">
+              <circle cx="222" cy="232" r="15" fill="var(--verify)"/>
+              <path d="M215 232 L220 238 L230 224" stroke="white" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+
+            <!-- portal nodes -->
+            <g class="node node-1"><circle cx="180" cy="40" r="5"/><text x="180" y="26" text-anchor="middle">Udyam</text></g>
+            <g class="node node-2"><circle cx="279" cy="81" r="5"/><text x="300" y="70" text-anchor="start">GSTN</text></g>
+            <g class="node node-3"><circle cx="320" cy="180" r="5"/><text x="330" y="184" text-anchor="start">PAN</text></g>
+            <g class="node node-4"><circle cx="279" cy="279" r="5"/><text x="300" y="300" text-anchor="start">MCA21</text></g>
+            <g class="node node-5"><circle cx="180" cy="320" r="5"/><text x="180" y="342" text-anchor="middle">EPFO</text></g>
+            <g class="node node-6"><circle cx="81" cy="279" r="5"/><text x="60" y="300" text-anchor="end">ESIC</text></g>
+            <g class="node node-7"><circle cx="40" cy="180" r="5"/><text x="30" y="184" text-anchor="end">DigiLocker</text></g>
+            <g class="node node-8"><circle cx="81" cy="81" r="5"/><text x="60" y="70" text-anchor="end">NSIC</text></g>
+
+            <!-- resolved score -->
+            <text class="s-label" x="180" y="368" text-anchor="middle">Paperwork, done</text>
+            <text class="s-value" x="180" y="392" text-anchor="middle"><tspan class="score-num">0</tspan><tspan class="s-risk"> · low risk</tspan></text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="chip-row">
+        <span class="label">Queried automatically, in place of eight open browser tabs</span>
+        <div class="chips">
+          <span class="chip">Udyam / MSME</span>
+          <span class="chip">GSTN</span>
+          <span class="chip">PAN &amp; Income Tax</span>
+          <span class="chip">MCA21</span>
+          <span class="chip">EPFO</span>
+          <span class="chip">ESIC</span>
+          <span class="chip">Startup India</span>
+          <span class="chip">NSIC</span>
+          <span class="chip">DigiLocker</span>
+          <span class="chip">Make in India / BIS-DPIIT</span>
+          <span class="chip">Blacklisting &amp; debarment records</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="problem" id="problem">
+    <div class="wrap">
+      <div class="problem-grid">
+        <div class="problem-copy">
+          <h2 style="margin-bottom:22px; font-size:clamp(28px,3.2vw,38px);">Right now, verification means chasing the same document across ten portals.</h2>
+          <p>Procurement officers on GeM are required to examine and cross-check bidder eligibility across Udyam registration, GST filings, PAN and income tax compliance, EPFO/ESIC status, Make in India content, Startup India and NSIC standing, OEM authorisation, and blacklisting records — for every bidder, on every tender.</p>
+          <p>None of these portals talk to each other. The work is manual, repetitive, and slow, and small inconsistencies are easy to miss until much later in the process — which is exactly when they're most expensive to catch.</p>
+        </div>
+
+        <div class="today-list ledger-lines">
+          <div class="row"><span class="task">Open Udyam portal, confirm MSME status</span><span class="status">manual</span></div>
+          <div class="row"><span class="task">Cross-check GSTN registration and return filing</span><span class="status">manual</span></div>
+          <div class="row"><span class="task">Verify PAN against income tax compliance</span><span class="status">manual</span></div>
+          <div class="row"><span class="task">Check EPFO / ESIC applicability and status</span><span class="status">manual</span></div>
+          <div class="row"><span class="task">Confirm Make in India / local content claims</span><span class="status">manual</span></div>
+          <div class="row"><span class="task">Search blacklisting and debarment records</span><span class="status">manual</span></div>
+          <div class="row"><span class="task">Reconcile findings across every portal by hand</span><span class="status">manual</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="steps" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>How Pramaan verifies a bidder</h2>
+        <p>The same checks a procurement officer runs today, retrieved and cross-referenced automatically, with a human still making the final call.</p>
+      </div>
+
+      <div class="step-list">
+        <div class="step">
+          <span class="num">01</span>
+          <div><h3>Bidder submits, as usual</h3><p>Documents and registration numbers are submitted through GeM in the normal bidding flow — no separate process for the bidder to learn.</p></div>
+        </div>
+        <div class="step">
+          <span class="num">02</span>
+          <div><h3>Pramaan retrieves and cross-checks</h3><p>Udyam, GSTN, PAN, MCA21, EPFO, ESIC, DigiLocker and other relevant portals are queried directly, and the results are matched against what was submitted.</p></div>
+        </div>
+        <div class="step">
+          <span class="num">03</span>
+          <div><h3>The AI verification engine reviews the record</h3><p>Missing, inconsistent or non-compliant information is identified against both statutory requirements and the specific tender's eligibility conditions.</p></div>
+        </div>
+        <div class="step">
+          <span class="num">04</span>
+          <div><h3>A compliance dashboard is generated</h3><p>The officer sees a compliance score, a risk level, document-by-document verification status, and what's still pending — in one place.</p></div>
+        </div>
+        <div class="step">
+          <span class="num">05</span>
+          <div><h3>The procurement officer decides</h3><p>Pramaan recommends; it doesn't rule. Qualification or disqualification stays a human decision, backed by a complete, auditable record of every check performed.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="capabilities" id="capabilities">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>What Pramaan checks, in one pass</h2>
+        <p>Six capabilities, working together on a single bidder record.</p>
+      </div>
+
+      <div class="cap-table">
+        <div class="cap-row">
+          <span class="cap-title">Multi-portal integration</span>
+          <p>Udyam, GSTN, PAN, MCA21, EPFO, ESIC, DigiLocker, NSIC, Startup India and GeM itself, queried without manual lookups.</p>
+        </div>
+        <div class="cap-row">
+          <span class="cap-title">AI document verification</span>
+          <p>Automated extraction, validation and cross-verification of submitted bidder documents against portal-derived data.</p>
+        </div>
+        <div class="cap-row">
+          <span class="cap-title">Automated compliance engine</span>
+          <p>Applies tender-specific eligibility conditions alongside statutory requirements — not a one-size-fits-all checklist.</p>
+        </div>
+        <div class="cap-row">
+          <span class="cap-title">Risk &amp; compliance scoring</span>
+          <p>Every bidder record resolves to an overall compliance score and a clear risk classification.</p>
+        </div>
+        <div class="cap-row">
+          <span class="cap-title">AI recommendation engine</span>
+          <p>Surfaces gaps, discrepancies and non-compliant information, with a recommendation — the decision stays with the officer.</p>
+        </div>
+        <div class="cap-row">
+          <span class="cap-title">Audit trail &amp; dashboard</span>
+          <p>Every verification, evidence source and decision is logged, timestamped, and traceable end to end.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="impact" id="impact">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>What changes for the procurement office</h2>
+        <p>The expected impact of moving bidder verification from manual review to automated, auditable checks.</p>
+      </div>
+      <div class="impact-grid">
+        <div class="impact-cell">
+          <div class="num">60–<span class="count-num" data-target="80">0</span>%</div>
+          <div class="desc">reduction in manual verification effort per bidder</div>
+        </div>
+        <div class="impact-cell">
+          <div class="num">Faster</div>
+          <div class="desc">tender evaluation and award, without skipping checks</div>
+        </div>
+        <div class="impact-cell">
+          <div class="num">Standardised</div>
+          <div class="desc">verification across CPSEs, not office by office</div>
+        </div>
+        <div class="impact-cell">
+          <div class="num">Complete</div>
+          <div class="desc">auditability and traceability of every decision</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing">
+    <div class="wrap">
+      <div class="closing-inner">
+        <h2>Get the paperwork done. Every bidder, every tender.</h2>
+        <a class="btn-primary" href="#how">Revisit how it works</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap footer-inner">
+    <span>Pramaan — AI-powered bid compliance verification for GeM procurement</span>
+    <span class="tag">Smart India Hackathon 2026 · Problem Statement SIH26100</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var el = document.querySelector('.score-num');
+  if(!el) return;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ el.textContent = '96'; return; }
+  setTimeout(function(){
+    var start = null, duration = 650, target = 96;
+    function step(ts){
+      if(!start) start = ts;
+      var progress = Math.min((ts - start) / duration, 1);
+      el.textContent = Math.round(progress * target);
+      if(progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }, 1700);
+
+  // active nav link while scrolling
+  var navLinks = document.querySelectorAll('nav.links a');
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section[id]'));
+  if(navLinks.length && sections.length && 'IntersectionObserver' in window){
+    var byId = {};
+    navLinks.forEach(function(a){ byId[a.getAttribute('href').slice(1)] = a; });
+    var navObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        var link = byId[entry.target.id];
+        if(!link) return;
+        if(entry.isIntersecting){
+          navLinks.forEach(function(a){ a.classList.remove('active'); });
+          link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    sections.forEach(function(s){ navObserver.observe(s); });
+  }
+
+  // impact section: one reveal, plus the headline stat counting up
+  var impactGrid = document.querySelector('.impact-grid');
+  if(impactGrid && 'IntersectionObserver' in window){
+    var impactObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting) return;
+        impactGrid.classList.add('in-view');
+        var counter = impactGrid.querySelector('.count-num');
+        if(counter){
+          var targetVal = parseInt(counter.getAttribute('data-target'), 10) || 0;
+          if(reduce){ counter.textContent = targetVal; }
+          else{
+            var cStart = null, cDuration = 800;
+            function cStep(ts){
+              if(!cStart) cStart = ts;
+              var p = Math.min((ts - cStart) / cDuration, 1);
+              counter.textContent = Math.round(p * targetVal);
+              if(p < 1) requestAnimationFrame(cStep);
+            }
+            requestAnimationFrame(cStep);
+          }
+        }
+        impactObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.35 });
+    impactObserver.observe(impactGrid);
+  }
+})();
+</script>
+</body>
+</html>
