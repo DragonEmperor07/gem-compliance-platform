@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,22 @@ from .document_classifier import classify_document
 ALIAS_MIN_HITS = 2
 
 WEAK_CONFIDENCE = 0.50
+
+
+def filename_alias_type(name: str, checklist: dict[str, Any]) -> str | None:
+    """Return a checklist id when the filename clearly names that evidence.
+
+    This is intentionally exact after punctuation normalisation. It fixes
+    distinctive custom types such as ``integrity_pact.txt`` without allowing a
+    passing mention inside an unrelated document to count as submitted proof.
+    """
+    stem = re.sub(r"[^a-z0-9]+", " ", Path(name).stem.lower()).strip()
+    for document in checklist["documents"]:
+        for alias in document.get("aliases", []):
+            clean_alias = re.sub(r"[^a-z0-9]+", " ", alias.lower()).strip()
+            if clean_alias and stem == clean_alias:
+                return document["id"]
+    return None
 
 
 def alias_hits(text: str, checklist: dict[str, Any], doc_id: str) -> int:
@@ -69,9 +86,17 @@ def classify_against_checklist(
     known = {doc["id"] for doc in checklist["documents"]}
 
     a_type, a_conf, a_ev = alias_match(text, checklist)
+    filename_type = filename_alias_type(name, checklist)
+
+    if filename_type is not None:
+        if a_type in {"unknown", filename_type}:
+            a_type = filename_type
+            a_conf = max(a_conf, 0.90)
+            a_ev = f"exact evidence title in filename: {Path(name).stem}"
 
     if a_type != "unknown" and alias_hits(text, checklist, a_type) < ALIAS_MIN_HITS:
-        a_conf = min(a_conf, WEAK_CONFIDENCE)
+        if filename_type != a_type:
+            a_conf = min(a_conf, WEAK_CONFIDENCE)
 
     result = classify_document(name, text, use_llm_fallback=use_llm)
     r_type = result.document_type

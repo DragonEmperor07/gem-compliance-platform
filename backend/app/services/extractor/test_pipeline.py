@@ -26,7 +26,8 @@ from .checklist_build import build_checklist, canonical_id, label_for, slugify
 from .compliance_score import document_states, score_report
 from .doc_check import load_checklist, read_inputs, reconcile
 from .document_classifier import classify_document
-from .match_engine import alias_hits, classify_against_checklist, match
+from .match_engine import alias_hits, classify_against_checklist, filename_alias_type, match
+from .real_validation import validate_real_submission
 from .req import RequirementDraft, RequirementExtraction, SubRequirementDraft
 from .scenario_json import evaluate_scenario
 
@@ -363,6 +364,20 @@ class TestMatchEngine(unittest.TestCase):
         )
         self.assertEqual(result.doc_type, "BOARD_RESOLUTION")
 
+    def test_exact_custom_document_filename_is_strong_evidence(self):
+        checklist = build_checklist(RequirementExtraction(
+            requirements=[requirement("Integrity", ["Integrity Pact"])]
+        ))
+        self.assertEqual(filename_alias_type("integrity_pact.txt", checklist), "INTEGRITY_PACT")
+        report = match(
+            checklist,
+            [("integrity_pact.txt", "INTEGRITY PACT duly signed and stamped")],
+            use_llm=False,
+            verbose=False,
+        )
+        self.assertEqual(report["counts"]["present"], 1)
+        self.assertEqual(report["counts"]["missing_required"], 0)
+
     def test_match_splits_present_and_missing(self):
         documents = [
             ("GST_Certificate.pdf", "GSTIN 29ABCDE1234F1Z5 goods and services tax"),
@@ -486,6 +501,47 @@ class TestEndToEnd(TempDirCase):
 
         # The report is JSON-serialisable end to end.
         json.loads(json.dumps(report))
+
+
+class TestRealSubmissionValidation(unittest.TestCase):
+
+    def test_registry_identifier_stays_review_until_source_verification(self):
+        checklist = build_checklist(RequirementExtraction(
+            requirements=[requirement("Tax", ["GST registration certificate"])]
+        ))
+        document = ExtractedDocument(
+            "gst_certificate.txt",
+            "GST REGISTRATION CERTIFICATE GSTIN: 29ABCDE1234F1Z5 Status: Active",
+            "text",
+        )
+        report = match(checklist, [(document.source_file, document.text)], use_llm=False, verbose=False)
+        decision = validate_real_submission(checklist, [document], report)
+        self.assertEqual(decision["coverage"]["percentage"], 100.0)
+        self.assertEqual(decision["eligibility_checks"][0]["state"], "review")
+        self.assertFalse(decision["validation_complete"])
+        self.assertFalse(decision["score"]["is_final"])
+
+    def test_threshold_failure_changes_compliance_decision(self):
+        financial = requirement("Financial standing", ["Audited financial statements"])
+        financial.sub_requirements = [SubRequirementDraft(
+            name="Minimum annual turnover",
+            description="Meet turnover threshold",
+            evidence_types=["Audited financial statements"],
+            thresholds=[{"name": "minimum average annual turnover", "value": "100", "unit": "lakhs"}],
+            source_page=1,
+            source_text="minimum turnover",
+        )]
+        checklist = build_checklist(RequirementExtraction(requirements=[financial]))
+        document = ExtractedDocument(
+            "audited_financial_statements.txt",
+            "AUDITED FINANCIAL STATEMENTS Average annual turnover: INR 75,00,000",
+            "text",
+        )
+        report = match(checklist, [(document.source_file, document.text)], use_llm=False, verbose=False)
+        decision = validate_real_submission(checklist, [document], report)
+        self.assertEqual(decision["eligibility_checks"][0]["state"], "fail")
+        self.assertEqual(decision["bid_responsiveness"], "NON_RESPONSIVE")
+        self.assertTrue(decision["validation_complete"])
 
 
 class TestScenarioJsonAdapter(unittest.TestCase):

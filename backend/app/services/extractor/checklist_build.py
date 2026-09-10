@@ -83,6 +83,7 @@ def build_checklist(
         # A parent with sub-requirements is a review group, not an additional
         # piece of evidence. Only its independent criteria become checklist
         # entries, preventing one broad parent from hiding a missing child.
+        has_sub_requirements = bool(requirement.sub_requirements)
         criteria = requirement.sub_requirements or [requirement]
 
         for criterion in criteria:
@@ -129,7 +130,10 @@ def build_checklist(
                     "parent_requirement": requirement.name,
                     "mandatory": required,
                     "condition": criterion.condition or requirement.condition,
-                    "thresholds": criterion.thresholds or requirement.thresholds,
+                    # Parent thresholds are inherited only when the parent is
+                    # itself the criterion. A dedicated threshold child owns
+                    # that check and prevents duplicate scoring.
+                    "thresholds": criterion.thresholds if has_sub_requirements else requirement.thresholds,
                     "source_page": criterion.source_page or requirement.source_page,
                 }
                 if criterion_reference not in entry["criteria"]:

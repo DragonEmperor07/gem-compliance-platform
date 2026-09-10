@@ -33,7 +33,7 @@ def evaluate_compliance(
     """Build a transparent score and recommendation from normalized checks."""
     eligibility_checks = eligibility_checks or []
     document_score = _component_score(document_checks, required_only=True)
-    eligibility_score = _component_score(eligibility_checks, required_only=False)
+    eligibility_score = _component_score(eligibility_checks, required_only=True)
 
     if document_score is None and eligibility_score is None:
         percentage = 0.0
@@ -50,10 +50,13 @@ def evaluate_compliance(
         check for check in document_checks
         if check.get("mandatory", True) and check.get("state") in {FAIL, MISSING}
     ]
-    failed_eligibility = [check for check in eligibility_checks if check.get("state") == FAIL]
+    failed_eligibility = [
+        check for check in eligibility_checks
+        if check.get("mandatory", True) and check.get("state") == FAIL
+    ]
     review_items = [
         check for check in document_checks + eligibility_checks
-        if check.get("state") == REVIEW
+        if check.get("mandatory", True) and check.get("state") == REVIEW
     ]
 
     if blocking_documents or failed_eligibility:

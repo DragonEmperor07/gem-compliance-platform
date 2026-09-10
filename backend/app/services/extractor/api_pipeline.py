@@ -14,12 +14,12 @@ from app.schemas.compliance import ChecklistPayload, Requirement, RequirementsPa
 
 from .bidder_zip import ExtractedDocument, ingest_zip
 from .checklist_build import build_checklist
-from .criterion_engine import decision_from_match_report
 from .field_extraction import extract_fields
 from .llm_extract import extract_requirements
 from .match_engine import match
 from .req import RequirementExtraction
 from .tender_pipeline import TenderPipeline
+from .real_validation import validate_real_submission
 
 
 def tender_context(pdf_bytes: bytes) -> dict:
@@ -228,7 +228,7 @@ def run_pipeline(
     checklist_data = checklist_from_requirements(extraction, checklist_name)
     documents = extract_submission(submission_bytes, use_ocr)
     report = match_submission(ChecklistPayload.model_validate(checklist_data), documents)
-    decision = decision_from_match_report(report)
+    decision = validate_real_submission(checklist_data, documents, report)
     document_summaries = [
         {
             "source_file": document.source_file,
@@ -239,23 +239,7 @@ def run_pipeline(
         }
         for document in documents
     ]
-    findings = [
-        {
-            "severity": "high" if item["required"] else "low",
-            "status": "missing",
-            "title": f"{item['label']} is missing",
-            "explanation": "No submitted document was confidently matched to this tender requirement.",
-            "evidence": {"requirement": item["label"], "possible_match": item.get("possible_match")},
-        }
-        for item in report["missing"] if not item.get("possible_match")
-    ]
-    findings.extend({
-        "severity": "medium",
-        "status": "review",
-        "title": f"{item['label']} needs review",
-        "explanation": "A possible submitted document was found, but its classification confidence is below the acceptance threshold.",
-        "evidence": {"requirement": item["label"], "possible_match": item["possible_match"]},
-    } for item in report["missing"] if item.get("possible_match"))
+    findings = decision["findings"]
     return {
         "tender": {"pages": tender["pages"], "page_count": tender["page_count"]},
         "requirements": extraction.model_dump(mode="json"),

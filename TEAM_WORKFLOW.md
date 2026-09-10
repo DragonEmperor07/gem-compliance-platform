@@ -198,7 +198,10 @@ Working today:
 - bidder ZIP ingestion, nested ZIP safety, document reading and OCR attempts;
 - deterministic document classification and checklist matching;
 - identifier/date extraction with evidence excerpts;
-- shared scoring and decision states;
+- exact custom-evidence filename matching;
+- separate document-coverage and criterion-level validation scores;
+- real-file threshold, identifier, expiry and cross-document consistency checks;
+- shared pass/fail/review states with evidence-backed explanations;
 - structured JSON acceptance scenarios;
 - connected frontend upload and result workflow.
 

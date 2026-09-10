@@ -242,10 +242,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
         showRequirements(reviewedRequirements, true);
       }
       function pipelineResult(data) {
-        var report = data.report || {}; var counts = report.counts || {}; var decision = data.decision || {}; var score = decision.score || report.compliance || {};
-        panel.hidden = false; title.textContent = 'Compliance result'; status.textContent = decision.bid_responsiveness || (report.status || 'complete').toUpperCase();
+        var report = data.report || {}; var counts = report.counts || {}; var decision = data.decision || {}; var score = decision.score || {}; var coverage = decision.coverage || report.compliance || {};
+        panel.hidden = false; title.textContent = 'Bidder evidence assessment'; status.textContent = decision.bid_responsiveness || (report.status || 'complete').toUpperCase();
         clear(summary); clear(documentsList); clear(fieldsList); clear(missingList); clear(findingsList);
-        row(summary, 'Compliance score', String(score.percentage || 0) + '%', 'v yes');
+        row(summary, 'Document coverage score', String(coverage.percentage || 0) + '%', coverage.percentage === 100 ? 'v yes' : 'v no');
+        row(summary, score.label || (score.is_final ? 'Final compliance score' : 'Provisional criterion score'), String(score.percentage || 0) + '%', score.is_final ? 'v yes' : 'v');
+        row(summary, 'Criterion validation', decision.validation_complete ? 'Complete' : 'Review or source verification remains', decision.validation_complete ? 'v yes' : 'v no');
         row(summary, 'Documents scanned', String(counts.files_scanned || 0));
         row(summary, 'Required evidence missing', String(counts.missing_required || 0), counts.missing_required ? 'v no' : 'v yes');
         reviewedRequirements = null;
@@ -254,7 +256,21 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
         var fields = (data.documents || []).reduce(function (all, doc) { return all.concat(doc.fields || []); }, []);
         if (fields.length) { heading(fieldsList, 'Submitted identifiers — verification pending'); fields.forEach(function (field) { var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div'); add(detail, field.field + ': ' + field.value, 'v'); add(detail, field.source_file, 'k'); box.appendChild(detail); var badge = document.createElement('span'); add(badge, 'Submitted only', 'bdg na'); box.appendChild(badge); fieldsList.appendChild(box); }); }
         if ((report.missing || []).length) { heading(missingList, 'Missing or review-needed evidence'); report.missing.forEach(function (item) { var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div'); add(detail, item.label, 'v'); add(detail, item.required ? 'Required evidence' : 'Optional evidence', 'k'); if ((item.requirements || []).length) add(detail, item.requirements.join('; '), 'k'); box.appendChild(detail); var badge = document.createElement('span'); add(badge, item.possible_match ? 'Review' : 'Missing', 'bdg alert'); box.appendChild(badge); missingList.appendChild(box); }); }
-        if ((data.findings || []).length) { heading(findingsList, 'Why this needs attention'); data.findings.forEach(function (finding) { var box = document.createElement('div'); box.className = 'find ' + (finding.severity === 'high' ? 'high' : 'medium'); var detail = document.createElement('div'); var name = document.createElement('h4'); name.textContent = finding.title; var explanation = document.createElement('p'); explanation.textContent = finding.explanation; detail.appendChild(name); detail.appendChild(explanation); box.appendChild(detail); findingsList.appendChild(box); }); }
+        if ((decision.eligibility_checks || []).length) {
+          heading(findingsList, 'Criterion-level validation');
+          decision.eligibility_checks.forEach(function (check) {
+            var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div');
+            add(detail, check.label, 'v'); add(detail, check.reason, 'k');
+            if (check.evidence && check.evidence.file) add(detail, 'Evidence: ' + check.evidence.file, 'k');
+            var proof = check.evidence && check.evidence.checks && check.evidence.checks.find(function (item) { return item && item.excerpt; });
+            if (proof && proof.excerpt) add(detail, 'Excerpt: “' + String(proof.excerpt).slice(0, 220) + '”', 'k');
+            box.appendChild(detail);
+            var badge = document.createElement('span');
+            add(badge, check.state === 'pass' ? 'Pass' : check.state === 'fail' ? 'Fail' : check.state === 'missing' ? 'Missing' : 'Review', check.state === 'pass' ? 'bdg ok' : check.state === 'review' ? 'bdg warn' : 'bdg alert');
+            box.appendChild(badge); findingsList.appendChild(box);
+          });
+        }
+        if ((data.findings || []).length) { heading(findingsList, 'Exceptions and explanations'); data.findings.forEach(function (finding) { var severity = String(finding.severity || '').toLowerCase(); var box = document.createElement('div'); box.className = 'find ' + (severity === 'high' || severity === 'critical' ? 'high' : 'medium'); var detail = document.createElement('div'); var name = document.createElement('h4'); name.textContent = finding.title; var explanation = document.createElement('p'); explanation.textContent = finding.explanation; detail.appendChild(name); detail.appendChild(explanation); box.appendChild(detail); findingsList.appendChild(box); }); }
         try { localStorage.setItem('pramaan.liveAnalysis', JSON.stringify(data)); } catch (_) {}
       }
       function scenarioResult(data) {
