@@ -1,8 +1,8 @@
-# Pramaan / GeM Compliance Platform — Team Workflow
+# Trust Setu / GeM Compliance Platform — Team Workflow
 
 ## 1. Product goal
 
-Pramaan assists a procurement officer with tender and bidder-document review.
+Trust Setu assists a procurement officer with tender and bidder-document review.
 It extracts requirements, checks submitted evidence, identifies exceptions,
 explains the evidence behind each result, and recommends a review outcome.
 The procurement officer always makes the final decision.
@@ -55,7 +55,9 @@ gem-compliance-platform/
 ├── TEAM_WORKFLOW.md                    # this document
 ├── backend/
 │   ├── requirements.txt                # Python dependencies
+│   ├── mock_gov/                        # separate synthetic demo provider
 │   └── app/
+│       ├── config.py                    # environment-backed runtime limits/providers
 │       ├── main.py                     # FastAPI app and CORS configuration
 │       ├── api/routes/compliance.py    # HTTP endpoint definitions
 │       ├── schemas/compliance.py       # request/response data models
@@ -70,6 +72,9 @@ gem-compliance-platform/
 │           ├── doc_check.py            # checklist reconciliation
 │           ├── match_engine.py         # evidence matching
 │           ├── field_extraction.py     # GSTIN/PAN/TAN/CIN/Udyam/date extraction
+│           ├── government_client.py    # configured registry-provider HTTP client
+│           ├── government_verification.py # identifier/entity verification adapter
+│           ├── real_validation.py      # real-file criterion validators
 │           ├── compliance_score.py     # legacy report scoring helpers
 │           ├── criterion_engine.py     # shared decision and score engine
 │           ├── scenario_json.py        # structured JSON scenario adapter
@@ -96,6 +101,7 @@ All routes use the `/api/compliance` prefix.
 | `POST /checklists` | Requirements JSON | Convert reviewed requirements into a checklist |
 | `POST /bidders/extract` | Bidder ZIP | Extract bidder files and text |
 | `POST /match` | Bidder ZIP and checklist JSON | Match submitted evidence to a checklist |
+| `POST /government/verify` | Bidder ZIP, optional bidder name | Query the configured verification provider |
 | `POST /pipeline` | Tender PDF, bidder ZIP, optional reviewed requirements | Run the complete real-file pipeline |
 | `POST /scenarios/evaluate` | Scenario JSON | Run structured acceptance-test data |
 
@@ -137,8 +143,8 @@ is unavailable, the backend uses its conservative rule-based fallback.
 Run backend tests:
 
 ```bash
-PYTHONPATH=backend backend/.venv/bin/python -m unittest -v \
-  app.services.extractor.test_pipeline
+PYTHONPATH=backend backend/.venv/bin/python -m unittest discover -v \
+  -s backend/app/services/extractor -t backend -p 'test_*.py'
 ```
 
 Build the frontend:
@@ -199,6 +205,7 @@ Working today:
 - deterministic document classification and checklist matching;
 - identifier/date extraction with evidence excerpts;
 - exact custom-evidence filename matching;
+- optional provider-based GST, PAN, Udyam, entity and blacklist checks;
 - separate document-coverage and criterion-level validation scores;
 - real-file threshold, identifier, expiry and cross-document consistency checks;
 - shared pass/fail/review states with evidence-backed explanations;
@@ -211,7 +218,7 @@ Still requiring production work:
 - robust entity-name, date-expiry and cross-document consistency validation for
   every real bidder file;
 - persistent cases, users, audit logs and role-based access;
-- background jobs, upload limits, malware scanning and encrypted storage;
+- background jobs, malware scanning and encrypted storage;
 - model evaluation, monitoring and production deployment;
 - broader real-tender and bidder-document regression coverage.
 

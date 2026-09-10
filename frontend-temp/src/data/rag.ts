@@ -31,19 +31,19 @@ export const passages: Passage[] = [
   /* ---------------- platform & policy ---------------- */
   {
     id: 'what-is',
-    title: 'What Pramaan does',
+    title: 'What Trust Setu does',
     source: 'Platform',
     answer:
-      'Pramaan verifies a GeM bidder against eleven government portals and returns one scored, auditable compliance record. It recommends; the procurement officer decides.',
-    text: 'Pramaan is a bid compliance verification platform for the Government e-Marketplace. It queries Udyam, GSTN, PAN/Income Tax, MCA21, EPFO, ESIC, DigiLocker, NSIC, Startup India, Make in India BIS-DPIIT and debarment registers, cross-checks each submitted value against what the portal returns, and produces a compliance score, a risk level and a full evidence trail for the officer.',
-    keys: ['what is pramaan', 'purpose', 'overview', 'product', 'about', 'summary', 'explain'],
+      'Trust Setu verifies a GeM bidder against eleven government portals and returns one scored, auditable compliance record. It recommends; the procurement officer decides.',
+    text: 'Trust Setu is a bid compliance verification platform for the Government e-Marketplace. It queries Udyam, GSTN, PAN/Income Tax, MCA21, EPFO, ESIC, DigiLocker, NSIC, Startup India, Make in India BIS-DPIIT and debarment registers, cross-checks each submitted value against what the portal returns, and produces a compliance score, a risk level and a full evidence trail for the officer.',
+    keys: ['what is trust-setu', 'purpose', 'overview', 'product', 'about', 'summary', 'explain'],
   },
   {
     id: 'decides',
     title: 'Who makes the decision',
     source: 'Policy',
     answer:
-      'The procurement officer does. Pramaan never awards or disqualifies — it verifies, scores and evidences, and records the officer’s reasoning alongside it.',
+      'The procurement officer does. Trust Setu never awards or disqualifies — it verifies, scores and evidences, and records the officer’s reasoning alongside it.',
     text: 'Qualification stays a human decision. The platform produces a recommendation with a confidence figure and an explicit limits note, and the officer records the actual decision with a reason. Human in the loop by design. The AI does not approve bidders.',
     keys: ['who decides', 'decides whether', 'bidder qualifies', 'human in the loop', 'does ai decide', 'automatic', 'approve', 'authority', 'disqualify'],
   },
@@ -63,7 +63,7 @@ export const passages: Passage[] = [
     href: 'app/portals',
     answer:
       'The check is marked pending — never passed and never failed. A missing source is always reported as missing, and the officer sees exactly which sources responded.',
-    text: 'Pramaan never infers compliance from an absent response. The portal status screen exists to make an unavailable or degraded source visible rather than silently absorbing it into a score.',
+    text: 'Trust Setu never infers compliance from an absent response. The portal status screen exists to make an unavailable or degraded source visible rather than silently absorbing it into a score.',
     keys: ['down', 'portal is down', 'what happens', 'offline', 'unavailable', 'outage', 'timeout', 'not responding', 'fails', 'missing source', 'pending'],
   },
   {
@@ -132,7 +132,7 @@ export const passages: Passage[] = [
     href: 'app/bidder',
     answer:
       'Clause 7.2 restricts this procurement to Class-I local suppliers, which requires a minimum of 50% local content. It is a qualifying condition, not a scoring factor.',
-    text: 'Nova Labtech declares 46% local content, below the 50% threshold. On the declaration as submitted the bidder does not meet the purchase preference condition. The declaration is the bidder’s own, certified by a statutory auditor on 22 Aug 2026; Pramaan does not independently audit the computation.',
+    text: 'Nova Labtech declares 46% local content, below the 50% threshold. On the declaration as submitted the bidder does not meet the purchase preference condition. The declaration is the bidder’s own, certified by a statutory auditor on 22 Aug 2026; Trust Setu does not independently audit the computation.',
     keys: ['7.2', 'clause 7.2', 'local content', 'class i', 'class-1', 'make in india', 'dpiit', 'threshold', '46', '50'],
   },
   {

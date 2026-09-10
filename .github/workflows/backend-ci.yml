@@ -44,4 +44,4 @@ jobs:
         run: python -m compileall -q backend/app
 
       - name: Run backend tests
-        run: python -m unittest -q app.services.extractor.test_pipeline
+        run: python -m unittest discover -q -s backend/app/services/extractor -t backend -p 'test_*.py'

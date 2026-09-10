@@ -1,5 +1,5 @@
 /**
- * Mock data for the Pramaan officer console.
+ * Mock data for the Trust Setu officer console.
  *
  * Everything here is illustrative. It is shaped like real GeM / statutory data
  * (GSTIN, UDYAM, PAN, CIN formats) so the UI can be designed against realistic
@@ -368,7 +368,7 @@ export const recommendation = {
     'December GSTR-3B was unfiled past its due date at the time of retrieval.',
   ],
   caveats: [
-    'Local content is taken from the bidder’s own declaration; Pramaan does not independently audit the computation.',
+    'Local content is taken from the bidder’s own declaration; Trust Setu does not independently audit the computation.',
     'Portal data reflects retrieval at 09:14 on 8 Sep 2026 and may since have changed.',
   ],
 };

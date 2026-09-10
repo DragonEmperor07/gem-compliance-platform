@@ -1,0 +1,72 @@
+{
+  "gst": {
+    "27ABCDE1234F1Z5": {
+      "legal_name": "ABC Engineering Pvt Ltd",
+      "status": "ACTIVE",
+      "registration_date": "2018-04-12"
+    },
+    "29XYZAB5678C1Z2": {
+      "legal_name": "XYZ Industrial Systems",
+      "status": "CANCELLED",
+      "registration_date": "2017-08-20"
+    },
+    "07LMNOP9012D1Z3": {
+      "legal_name": "Delta Process Equipment",
+      "status": "ACTIVE",
+      "registration_date": "2020-01-15"
+    }
+  },
+  "pan": {
+    "ABCDE1234F": {
+      "legal_name": "ABC Engineering Pvt Ltd",
+      "status": "VALID"
+    },
+    "XYZAB5678C": {
+      "legal_name": "XYZ Industrial Systems",
+      "status": "VALID"
+    },
+    "LMNOP9012D": {
+      "legal_name": "Delta Process Equipment",
+      "status": "VALID"
+    },
+    "QWERT1234Z": {
+      "legal_name": "Different Entity Pvt Ltd",
+      "status": "VALID"
+    }
+  },
+  "udyam": {
+    "UDYAM-MH-12-0012345": {
+      "enterprise_name": "ABC Engineering Pvt Ltd",
+      "status": "ACTIVE",
+      "classification": "MEDIUM"
+    },
+    "UDYAM-KA-05-0098765": {
+      "enterprise_name": "XYZ Industrial Systems",
+      "status": "ACTIVE",
+      "classification": "SMALL"
+    },
+    "UDYAM-DL-01-0043210": {
+      "enterprise_name": "Delta Process Equipment",
+      "status": "ACTIVE",
+      "classification": "MEDIUM"
+    }
+  },
+  "blacklist": {
+    "ABC Engineering Pvt Ltd": {
+      "blacklisted": false,
+      "authority": null,
+      "status": "CLEAR"
+    },
+    "XYZ Industrial Systems": {
+      "blacklisted": false,
+      "authority": null,
+      "status": "CLEAR"
+    },
+    "Delta Process Equipment": {
+      "blacklisted": true,
+      "authority": "Mock Procurement Authority",
+      "reason": "Synthetic demo record",
+      "status": "BLACKLISTED"
+    }
+  }
+}

@@ -12,14 +12,17 @@
 
 <script is:inline>
   (function () {
-    var key = 'pramaan.liveAnalysis';
+    var key = 'trust-setu.liveAnalysis';
     var raw;
     try { raw = window.localStorage.getItem(key); } catch (_) { return; }
     if (!raw) return;
     var result;
     try { result = JSON.parse(raw); } catch (_) { return; }
     var report = result.report || {};
-    var score = report.compliance || {};
+    var decision = result.decision || {};
+    var score = decision.score || {};
+    var coverage = decision.coverage || report.compliance || {};
+    var verification = result.government_verification || {};
     document.querySelectorAll('[data-live-analysis]').forEach(function (panel) {
       panel.hidden = false;
       var time = panel.querySelector('[data-live-time]');
@@ -28,8 +31,10 @@
       if (time) time.textContent = report.generated_at ? 'Generated ' + new Date(report.generated_at).toLocaleString() : 'Current browser session';
       if (summary) {
         [
-          ['Compliance score', (score.percentage || 0) + '%'],
-          ['Status', report.status || 'unknown'],
+          ['Document coverage', (coverage.percentage || 0) + '%'],
+          [score.label || 'Provisional criterion score', (score.percentage || 0) + '%'],
+          ['Status', decision.bid_responsiveness || report.status || 'unknown'],
+          ['Source verification', verification.overall === 'NOT_CONFIGURED' ? 'not configured' : verification.authoritative === true ? verification.overall || 'review' : 'review — non-authoritative'],
           ['Evidence found', (report.counts || {}).present || 0],
           ['Required evidence missing', (report.counts || {}).missing_required || 0],
         ].forEach(function (item) {
@@ -61,7 +66,7 @@
       button.addEventListener('click', function () {
         var blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
         var link = document.createElement('a');
-        link.href = URL.createObjectURL(blob); link.download = 'pramaan-compliance-report.json';
+        link.href = URL.createObjectURL(blob); link.download = 'trust-setu-compliance-report.json';
         link.click(); URL.revokeObjectURL(link.href);
       });
     });

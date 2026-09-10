@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const html = fs.readFileSync('pramaan-landing.html', 'utf-8');
+const html = fs.readFileSync('trust-setu-landing.html', 'utf-8');
 
 const cssMatch = html.match(/<style>([\s\S]*?)<\/style>/);
 const css = cssMatch ? cssMatch[1] : '';
@@ -37,7 +37,7 @@ const { title } = Astro.props;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
-    <meta name="description" content="Pramaan connects to Udyam, GSTN, PAN, EPFO, MCA21 and DigiLocker to verify GeM bidder compliance automatically, giving procurement officers a single auditable record instead of eight open tabs.">
+    <meta name="description" content="Trust Setu connects to Udyam, GSTN, PAN, EPFO, MCA21 and DigiLocker to verify GeM bidder compliance automatically, giving procurement officers a single auditable record instead of eight open tabs.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -62,7 +62,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 ---
 
-<Layout title="Pramaan — Verified bidder compliance for GeM procurement">
+<Layout title="Trust Setu — Verified bidder compliance for GeM procurement">
   <Header />
   ${main}
   <Footer />
@@ -71,7 +71,7 @@ import Footer from '../components/Footer.astro';
 
 if (!fs.existsSync('package.json')) {
     fs.writeFileSync('package.json', JSON.stringify({
-        "name": "pramaan",
+        "name": "trust-setu",
         "type": "module",
         "version": "0.0.1",
         "scripts": {

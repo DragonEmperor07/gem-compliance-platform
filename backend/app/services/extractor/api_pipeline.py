@@ -14,12 +14,14 @@ import httpx
 from ollama import ResponseError
 from pydantic import ValidationError
 
-from app.config import REQUIREMENT_MODEL
+from app.config import GOVERNMENT_API_TIMEOUT_SECONDS, GOVERNMENT_API_URL, REQUIREMENT_MODEL
 from app.schemas.compliance import ChecklistPayload, Requirement, RequirementsPayload, SubRequirement
 
 from .bidder_zip import ExtractedDocument, ingest_zip
 from .checklist_build import build_checklist
 from .field_extraction import extract_fields
+from .government_client import GovernmentClient
+from .government_verification import verify_documents
 from .llm_extract import extract_requirements
 from .match_engine import match
 from .req import RequirementExtraction
@@ -229,6 +231,26 @@ def match_submission(
     )
 
 
+def configured_government_client() -> GovernmentClient | None:
+    """Build the server-configured provider client, if verification is enabled."""
+    if not GOVERNMENT_API_URL:
+        return None
+    return GovernmentClient(GOVERNMENT_API_URL, GOVERNMENT_API_TIMEOUT_SECONDS)
+
+
+def verify_submission(
+    documents: list[ExtractedDocument],
+    bidder_name: str | None = None,
+    *,
+    client: GovernmentClient | None = None,
+) -> dict:
+    return verify_documents(
+        documents,
+        client if client is not None else configured_government_client(),
+        bidder_name=bidder_name,
+    )
+
+
 def run_pipeline(
     tender_bytes: bytes,
     submission_bytes: bytes,
@@ -237,6 +259,8 @@ def run_pipeline(
     checklist_name: str = "Tender document checklist",
     model: str = REQUIREMENT_MODEL,
     use_ocr: bool = True,
+    bidder_name: str | None = None,
+    government_client: GovernmentClient | None = None,
 ) -> dict:
     tender = tender_context(tender_bytes)
     extraction = requirements or requirements_from_context(tender["context"], model)
@@ -245,7 +269,17 @@ def run_pipeline(
     checklist_data = checklist_from_requirements(extraction, checklist_name)
     documents = extract_submission(submission_bytes, use_ocr)
     report = match_submission(ChecklistPayload.model_validate(checklist_data), documents)
-    decision = validate_real_submission(checklist_data, documents, report)
+    government_verification = verify_submission(
+        documents,
+        bidder_name,
+        client=government_client,
+    )
+    decision = validate_real_submission(
+        checklist_data,
+        documents,
+        report,
+        government_verification=government_verification,
+    )
     document_summaries = [
         {
             "source_file": document.source_file,
@@ -264,5 +298,6 @@ def run_pipeline(
         "documents": document_summaries,
         "findings": findings,
         "decision": decision,
+        "government_verification": government_verification,
         "report": report,
     }

@@ -1,7 +1,7 @@
 # Portal logo sources
 
 Marks shown in the "queried automatically" strip on the landing page. Each is used **nominatively**
-— to identify the government portal Pramaan integrates with — not as a claim of endorsement,
+— to identify the government portal Trust Setu integrates with — not as a claim of endorsement,
 affiliation or approval by any of these bodies.
 
 | File | Portal | Source | Notes |

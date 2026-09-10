@@ -22,8 +22,11 @@ from pathlib import Path
 from .bidder_zip import ingest_zip
 from .checklist_build import build_checklist, save_checklist
 from .doc_check import load_checklist, read_inputs
+from .government_client import GovernmentClient
+from .government_verification import verify_documents
 from .match_engine import match, print_report
 from .req import RequirementExtraction
+from app.config import GOVERNMENT_API_TIMEOUT_SECONDS, GOVERNMENT_API_URL
 
 
 def banner(step: int, title: str) -> None:
@@ -90,6 +93,8 @@ def main() -> None:
     ap.add_argument("--reuse", action="store_true", help="reuse existing artifacts")
     ap.add_argument("--no-ocr", action="store_true")
     ap.add_argument("--no-llm", action="store_true", help="deterministic matching only")
+    ap.add_argument("--gov-url", default=GOVERNMENT_API_URL, help="configured verification provider URL")
+    ap.add_argument("--bidder-name", default=None, help="bidder legal name for entity/blacklist checks")
     args = ap.parse_args()
 
     for path in (args.tender, args.zip_path):
@@ -119,6 +124,12 @@ def main() -> None:
         raise SystemExit(f"no extracted documents in {extracted_dir}")
 
     report = match(checklist, documents, use_llm=not args.no_llm)
+    client = GovernmentClient(args.gov_url, GOVERNMENT_API_TIMEOUT_SECONDS) if args.gov_url else None
+    report["government_verification"] = verify_documents(
+        documents,
+        client,
+        bidder_name=args.bidder_name,
+    )
     report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 
     print_report(report)

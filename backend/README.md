@@ -30,11 +30,29 @@ API documentation is available at `http://127.0.0.1:8000/docs`.
 Ollama is optional. When it is unavailable, tender extraction returns
 `extraction_method: heuristic`, a `fallback_reason`, and a warning.
 
+## Optional verification provider
+
+Registry verification is disabled unless `GOVERNMENT_API_URL` is configured.
+The backend exposes `POST /api/compliance/government/verify`, and the full
+pipeline includes the same result under `government_verification`. Provider
+responses must explicitly contain `authoritative: true` before they can turn a
+registry criterion into a pass or fail.
+
+A separate synthetic service is included for local demonstrations only:
+
+```bash
+PYTHONPATH=backend backend/.venv/bin/python -m uvicorn mock_gov.server:app \
+  --host 127.0.0.1 --port 9000
+```
+
+Set `GOVERNMENT_API_URL=http://127.0.0.1:9000` in `backend/.env` to use it.
+Its results remain review-required because it reports `authoritative: false`.
+
 ## Verify changes
 
 ```bash
-PYTHONPATH=backend backend/.venv/bin/python -m unittest -q \
-  app.services.extractor.test_pipeline
+PYTHONPATH=backend backend/.venv/bin/python -m unittest discover -q \
+  -s backend/app/services/extractor -t backend -p 'test_*.py'
 PYTHONPATH=backend backend/.venv/bin/python -m compileall -q backend/app
 backend/.venv/bin/pip check
 ```

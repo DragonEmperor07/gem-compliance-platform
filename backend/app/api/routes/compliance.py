@@ -19,6 +19,7 @@ from app.services.extractor.api_pipeline import (
     requirements_from_tender,
     run_pipeline,
     tender_context,
+    verify_submission,
 )
 from app.services.extractor.scenario_json import evaluate_scenario_bytes
 
@@ -119,15 +120,44 @@ async def match_endpoint(submission: UploadFile = File(...), checklist: str = Fo
         raise HTTPException(422, f"Could not process bidder ZIP: {exc}") from exc
 
 
+@router.post("/government/verify")
+async def government_verify_endpoint(
+    submission: UploadFile = File(...),
+    bidder_name: str | None = Form(None),
+    use_ocr: bool = Form(True),
+):
+    """Verify identifiers through the server-configured provider.
+
+    Provider provenance and authority are returned explicitly. An unavailable
+    or unconfigured provider never prevents local document extraction.
+    """
+    try:
+        documents = extract_submission(await _zip(submission), use_ocr)
+        return verify_submission(documents, bidder_name)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(422, f"Could not verify bidder identifiers: {exc}") from exc
+
+
 @router.post("/pipeline")
 async def pipeline_endpoint(
     tender: UploadFile = File(...), submission: UploadFile = File(...),
     requirements: str | None = Form(None), checklist_name: str = Form("Tender document checklist"),
     model: str = Form(REQUIREMENT_MODEL), use_ocr: bool = Form(True),
+    bidder_name: str | None = Form(None),
 ):
     try:
         parsed = RequirementsPayload.model_validate_json(requirements) if requirements else None
-        return run_pipeline(await _pdf(tender), await _zip(submission), requirements=parsed, checklist_name=checklist_name, model=model, use_ocr=use_ocr)
+        return run_pipeline(
+            await _pdf(tender),
+            await _zip(submission),
+            requirements=parsed,
+            checklist_name=checklist_name,
+            model=model,
+            use_ocr=use_ocr,
+            bidder_name=bidder_name,
+        )
     except HTTPException:
         raise
     except RuntimeError as exc:

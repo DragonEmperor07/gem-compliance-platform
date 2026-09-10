@@ -29,6 +29,11 @@ IDENTIFIER_BY_TYPE = {
     "TAN_CERTIFICATE": "TAN",
     "UDYAM_CERTIFICATE": "UDYAM",
 }
+SERVICE_BY_TYPE = {
+    "GST_CERTIFICATE": "GST",
+    "PAN_CARD": "PAN",
+    "UDYAM_CERTIFICATE": "UDYAM",
+}
 
 
 def _excerpt(text: str, match: re.Match[str] | None = None, width: int = 180) -> str:
@@ -116,7 +121,47 @@ def _threshold_result(threshold: dict[str, Any], text: str) -> tuple[str, str, d
     return PASS, f"Extracted value {actual:g} meets the required value {expected:g}.", details
 
 
-def _content_result(doc_id: str, text: str) -> tuple[str, str, dict[str, Any]]:
+def _provider_result(
+    doc_id: str,
+    identifier: str,
+    verification: dict[str, Any] | None,
+) -> tuple[str, str, dict[str, Any]] | None:
+    service = SERVICE_BY_TYPE.get(doc_id)
+    if not service or not verification:
+        return None
+    check = next((
+        item for item in verification.get("checks", [])
+        if item.get("service") == service and item.get("identifier") == identifier
+    ), None)
+    if check is None:
+        return None
+
+    details = {
+        "provider": check.get("source"),
+        "environment": check.get("environment"),
+        "authoritative": check.get("authoritative") is True,
+        "status": check.get("status"),
+        "entity_match": check.get("entity_match"),
+        "identifier": identifier,
+    }
+    status = str(check.get("status", "UNKNOWN")).upper()
+    authoritative = check.get("authoritative") is True
+    entity_match = check.get("entity_match")
+
+    if not authoritative:
+        return REVIEW, "The configured provider returned a demo or non-authoritative result; officer review is still required.", details
+    if status in {"ACTIVE", "VALID"} and entity_match is not False:
+        return PASS, f"The authoritative provider reports the {service} identifier as {status.lower()}.", details
+    if status in {"CANCELLED", "NOT_FOUND"} or entity_match is False:
+        return FAIL, "The authoritative provider did not validate this identifier or bidder identity.", details
+    return REVIEW, "The authoritative provider could not return a conclusive verification result.", details
+
+
+def _content_result(
+    doc_id: str,
+    text: str,
+    government_verification: dict[str, Any] | None = None,
+) -> tuple[str, str, dict[str, Any]]:
     if not text.strip():
         return FAIL, "The submitted file yielded no readable text.", {}
 
@@ -127,6 +172,10 @@ def _content_result(doc_id: str, text: str) -> tuple[str, str, dict[str, Any]]:
             return FAIL, f"No valid-format {field_name} was found in the submitted document.", {}
         evidence = {"field": field_name, "value": values[0]["value"], "excerpt": values[0]["evidence"]}
         if doc_id in EXTERNAL_VERIFICATION_TYPES:
+            provider = _provider_result(doc_id, values[0]["value"], government_verification)
+            if provider is not None:
+                provider[2]["submitted_evidence"] = evidence
+                return provider
             return REVIEW, f"{field_name} format was extracted, but authoritative-source verification is not connected.", evidence
 
     signatures = {
@@ -149,11 +198,16 @@ def _content_result(doc_id: str, text: str) -> tuple[str, str, dict[str, Any]]:
     return REVIEW, "The document was matched, but no deterministic content validator exists for this evidence type.", {"excerpt": _excerpt(text)}
 
 
-def _criterion_check(doc: dict[str, Any], criterion: dict[str, Any], source: ExtractedDocument) -> dict[str, Any]:
+def _criterion_check(
+    doc: dict[str, Any],
+    criterion: dict[str, Any],
+    source: ExtractedDocument,
+    government_verification: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     thresholds = criterion.get("thresholds") or []
     results = [_threshold_result(threshold, source.text) for threshold in thresholds]
     if not results:
-        results = [_content_result(doc["id"], source.text)]
+        results = [_content_result(doc["id"], source.text, government_verification)]
 
     states = [result[0] for result in results]
     state = FAIL if FAIL in states else REVIEW if REVIEW in states else PASS
@@ -219,10 +273,46 @@ def _cross_document_checks(documents: list[ExtractedDocument]) -> list[dict[str,
     return checks
 
 
+def _blacklist_check(verification: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not verification:
+        return None
+    check = next((item for item in verification.get("checks", []) if item.get("service") == "BLACKLIST"), None)
+    if check is None:
+        return None
+    authoritative = check.get("authoritative") is True
+    blacklisted = str(check.get("status", "")).upper() == "BLACKLISTED"
+    if not authoritative:
+        state = REVIEW
+        reason = "The configured blacklist source is demo or non-authoritative; officer review is required."
+    elif blacklisted:
+        state = FAIL
+        reason = "The authoritative source reports the bidder as blacklisted."
+    else:
+        state = PASS
+        reason = "The authoritative source does not report the bidder as blacklisted."
+    return {
+        "id": "EXTERNAL::BLACKLIST",
+        "name": "Bidder blacklist status",
+        "label": "Bidder blacklist status",
+        "mandatory": True,
+        "state": state,
+        "severity": "CRITICAL" if state == FAIL else "MEDIUM" if state == REVIEW else "NONE",
+        "reason": reason,
+        "evidence": {
+            "provider": check.get("source"),
+            "environment": check.get("environment"),
+            "authoritative": authoritative,
+            "status": check.get("status"),
+            "record": check.get("record"),
+        },
+    }
+
+
 def validate_real_submission(
     checklist: dict[str, Any],
     documents: list[ExtractedDocument],
     report: dict[str, Any],
+    government_verification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Validate matched evidence and return coverage plus criterion decision."""
     source_by_name = {document.source_file: document for document in documents}
@@ -254,7 +344,10 @@ def validate_real_submission(
         if present:
             source = next((source_by_name[name] for name in present.get("files", []) if name in source_by_name), None)
             if source:
-                criterion_checks.extend(_criterion_check(document, criterion, source) for criterion in criteria)
+                criterion_checks.extend(
+                    _criterion_check(document, criterion, source, government_verification)
+                    for criterion in criteria
+                )
                 continue
         for criterion in criteria:
             criterion_checks.append({
@@ -269,6 +362,9 @@ def validate_real_submission(
             })
 
     criterion_checks.extend(_cross_document_checks(documents))
+    blacklist = _blacklist_check(government_verification)
+    if blacklist is not None:
+        criterion_checks.append(blacklist)
     decision = evaluate_compliance(document_checks, criterion_checks)
     review_count = sum(1 for check in document_checks + criterion_checks if check["state"] == REVIEW)
     decision["validation_complete"] = review_count == 0

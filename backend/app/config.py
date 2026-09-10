@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 REQUIREMENT_MODEL = os.getenv("REQUIREMENT_MODEL", "qwen3:8b")
+GOVERNMENT_API_URL = os.getenv("GOVERNMENT_API_URL", "").strip()
 
 
 def _positive_int(name: str, default: int) -> int:
@@ -21,6 +22,19 @@ def _positive_int(name: str, default: int) -> int:
         value = int(raw)
     except ValueError as exc:
         raise RuntimeError(f"{name} must be an integer") from exc
+    if value <= 0:
+        raise RuntimeError(f"{name} must be greater than zero")
+    return value
+
+
+def _positive_float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a number") from exc
     if value <= 0:
         raise RuntimeError(f"{name} must be greater than zero")
     return value
@@ -38,3 +52,4 @@ MAX_COMPRESSION_RATIO = _positive_int("MAX_COMPRESSION_RATIO", 200)
 MAX_NESTED_ZIP_DEPTH = _positive_int("MAX_NESTED_ZIP_DEPTH", 3)
 MAX_PDF_PAGES = _positive_int("MAX_PDF_PAGES", 500)
 UPLOAD_CHUNK_BYTES = _positive_int("UPLOAD_CHUNK_BYTES", MIB)
+GOVERNMENT_API_TIMEOUT_SECONDS = _positive_float("GOVERNMENT_API_TIMEOUT_SECONDS", 5.0)

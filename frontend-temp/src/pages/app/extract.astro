@@ -4,7 +4,7 @@ import AppLayout from '../../layouts/AppLayout.astro';
 const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
 ---
 
-<AppLayout title="Tender analysis — Pramaan" active="extract" crumbs={[{ label: 'Tender analysis' }]}>
+<AppLayout title="Tender analysis — Trust Setu" active="extract" crumbs={[{ label: 'Tender analysis' }]}>
   <div class="page-head">
     <div>
       <h1>Tender analysis</h1>
@@ -33,6 +33,11 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
             <input type="file" id="bidderIn" accept=".zip,application/zip" hidden />
             <input type="file" id="scenarioIn" accept=".json,application/json" hidden />
           </div>
+          <div class="bidder-context">
+            <label for="bidderName">Bidder registered legal name <span>Optional</span></label>
+            <input id="bidderName" type="text" autocomplete="organization" placeholder="e.g. ABC Engineering Pvt Ltd" />
+            <p>Used for entity-name and blacklist checks when a verification provider is configured.</p>
+          </div>
         </div>
         <div class="panel-body flush">
           <div class="flist" id="selectedFiles">
@@ -51,6 +56,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
         <div class="panel-body flush" id="requirementsList"></div>
         <div class="panel-body flush" id="documentsList"></div>
         <div class="panel-body flush" id="fieldsList"></div>
+        <div class="panel-body flush" id="verificationList"></div>
         <div class="panel-body flush" id="missingList"></div>
         <div class="panel-body flush" id="findingsList"></div>
       </div>
@@ -64,6 +70,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
             <div class="pstep idle"><span class="b">1</span><div><div class="t">Read tender</div><div class="d">Relevant bidder-obligation pages are selected.</div></div></div>
             <div class="pstep idle"><span class="b">2</span><div><div class="t">Build checklist</div><div class="d">Required evidence documents are identified.</div></div></div>
             <div class="pstep idle"><span class="b">3</span><div><div class="t">Match submission</div><div class="d">Available when a bidder ZIP is included.</div></div></div>
+            <div class="pstep idle"><span class="b">4</span><div><div class="t">Check configured sources</div><div class="d">Registry and blacklist responses retain their provider and authority labels.</div></div></div>
           </div>
         </div>
       </div>
@@ -74,6 +81,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
           <div class="fld"><span class="k">Compliance score</span><span class="v">Tender PDF + bidder ZIP</span></div>
           <div class="fld"><span class="k">Acceptance testing</span><span class="v">Scenario JSON</span></div>
           <div class="fld"><span class="k">Supported bidder files</span><span class="v">PDF, images, DOCX, text</span></div>
+          <div class="fld"><span class="k">Source verification</span><span class="v">Requires a configured backend provider</span></div>
         </div>
       </div>
     </div>
@@ -85,6 +93,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
       var tenderInput = document.getElementById('tenderIn');
       var bidderInput = document.getElementById('bidderIn');
       var scenarioInput = document.getElementById('scenarioIn');
+      var bidderNameInput = document.getElementById('bidderName');
       var run = document.getElementById('runBtn');
       var state = document.getElementById('runState');
       var files = document.getElementById('selectedFiles');
@@ -96,6 +105,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
       var requirementsList = document.getElementById('requirementsList');
       var documentsList = document.getElementById('documentsList');
       var fieldsList = document.getElementById('fieldsList');
+      var verificationList = document.getElementById('verificationList');
       var missingList = document.getElementById('missingList');
       var findingsList = document.getElementById('findingsList');
       var tenderFile = null;
@@ -107,6 +117,15 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
       function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
       function row(node, label, value, klass) { var item = document.createElement('div'); item.className = 'fld'; add(item, label, 'k'); add(item, value, klass || 'v'); node.appendChild(item); }
       function heading(node, text) { var item = document.createElement('div'); item.className = 'grp-head'; add(item, text, 't'); node.appendChild(item); }
+      function verificationBadge(check) {
+        var status = String((check && check.status) || 'UNKNOWN').toUpperCase();
+        if (!check) return { text: 'Submitted only', klass: 'bdg na' };
+        if (status === 'UNAVAILABLE' || status === 'ERROR' || status === 'INVALID_RESPONSE') return { text: 'Unavailable', klass: 'bdg warn' };
+        if (check.authoritative !== true) return { text: 'Demo: ' + status.replace(/_/g, ' ').toLowerCase(), klass: 'bdg warn' };
+        if (status === 'ACTIVE' || status === 'VALID' || status === 'CLEAR') return { text: 'Verified', klass: 'bdg ok' };
+        if (status === 'CANCELLED' || status === 'NOT_FOUND' || status === 'BLACKLISTED' || check.entity_match === false) return { text: 'Failed', klass: 'bdg alert' };
+        return { text: 'Review', klass: 'bdg warn' };
+      }
       function fileRow(file, label) {
         var item = document.createElement('div'); item.className = 'fitem';
         add(item, '▤', 'fi'); var detail = document.createElement('span'); detail.style.minWidth = '0';
@@ -234,7 +253,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
       }
       function tenderResult(data) {
         panel.hidden = false; title.textContent = 'Tender requirements'; status.textContent = 'Checklist ready';
-        clear(summary); clear(documentsList); clear(fieldsList); clear(missingList); clear(findingsList);
+        clear(summary); clear(documentsList); clear(fieldsList); clear(verificationList); clear(missingList); clear(findingsList);
         row(summary, 'Requirements found', String((data.requirements || []).length), 'v yes');
         row(summary, 'Review before scoring', 'Use Include to adjust bidder-specific requirements');
         row(summary, 'Next step', 'Add bidder ZIP to score compliance');
@@ -242,19 +261,73 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
         showRequirements(reviewedRequirements, true);
       }
       function pipelineResult(data) {
-        var report = data.report || {}; var counts = report.counts || {}; var decision = data.decision || {}; var score = decision.score || {}; var coverage = decision.coverage || report.compliance || {};
+        var report = data.report || {}; var counts = report.counts || {}; var decision = data.decision || {}; var score = decision.score || {}; var coverage = decision.coverage || report.compliance || {}; var verification = data.government_verification || {};
         panel.hidden = false; title.textContent = 'Bidder evidence assessment'; status.textContent = decision.bid_responsiveness || (report.status || 'complete').toUpperCase();
-        clear(summary); clear(documentsList); clear(fieldsList); clear(missingList); clear(findingsList);
+        clear(summary); clear(documentsList); clear(fieldsList); clear(verificationList); clear(missingList); clear(findingsList);
         row(summary, 'Document coverage score', String(coverage.percentage || 0) + '%', coverage.percentage === 100 ? 'v yes' : 'v no');
         row(summary, score.label || (score.is_final ? 'Final compliance score' : 'Provisional criterion score'), String(score.percentage || 0) + '%', score.is_final ? 'v yes' : 'v');
         row(summary, 'Criterion validation', decision.validation_complete ? 'Complete' : 'Review or source verification remains', decision.validation_complete ? 'v yes' : 'v no');
         row(summary, 'Documents scanned', String(counts.files_scanned || 0));
         row(summary, 'Required evidence missing', String(counts.missing_required || 0), counts.missing_required ? 'v no' : 'v yes');
+        var verificationText = verification.overall === 'NOT_CONFIGURED' ? 'Not configured — identifiers remain unverified' : verification.authoritative === true ? String(verification.overall || 'REVIEW').replace(/_/g, ' ') : 'Review — demo or non-authoritative source';
+        row(summary, 'Source verification', verificationText, verification.authoritative === true && verification.overall === 'VERIFIED' ? 'v yes' : 'v no');
         reviewedRequirements = null;
-        showRequirements(data.requirements || [], false);
+        showRequirements((data.requirements || {}).requirements || data.requirements || [], false);
         if ((data.documents || []).length) { heading(documentsList, 'Extracted submission documents'); data.documents.forEach(function (doc) { var item = document.createElement('div'); item.className = 'fitem'; add(item, '▤', 'fi'); var detail = document.createElement('span'); detail.style.minWidth = '0'; add(detail, doc.source_file, 'nm'); add(detail, String(doc.text_length) + ' extracted characters', 'sub'); item.appendChild(detail); add(item, doc.status, 'src'); documentsList.appendChild(item); }); }
-        var fields = (data.documents || []).reduce(function (all, doc) { return all.concat(doc.fields || []); }, []);
-        if (fields.length) { heading(fieldsList, 'Submitted identifiers — verification pending'); fields.forEach(function (field) { var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div'); add(detail, field.field + ': ' + field.value, 'v'); add(detail, field.source_file, 'k'); box.appendChild(detail); var badge = document.createElement('span'); add(badge, 'Submitted only', 'bdg na'); box.appendChild(badge); fieldsList.appendChild(box); }); }
+        var identifierTypes = { GSTIN: true, PAN: true, TAN: true, CIN: true, UDYAM: true };
+        var seenIdentifiers = {};
+        var fields = (data.documents || []).reduce(function (all, doc) {
+          return all.concat(doc.fields || []);
+        }, []).filter(function (field) {
+          if (!identifierTypes[field.field]) return false;
+          var key = field.field + ':' + field.value;
+          if (seenIdentifiers[key]) return false;
+          seenIdentifiers[key] = true;
+          return true;
+        });
+        var checks = verification.checks || [];
+        var serviceByField = { GSTIN: 'GST', PAN: 'PAN', UDYAM: 'UDYAM' };
+        if (fields.length) {
+          heading(fieldsList, 'Submitted identifiers and source checks');
+          var columns = document.createElement('div'); columns.className = 'verification-columns';
+          add(columns, 'Submitted identifier'); add(columns, 'Source response'); add(columns, 'Outcome'); fieldsList.appendChild(columns);
+          fields.forEach(function (field) {
+            var service = serviceByField[field.field];
+            var check = checks.find(function (item) { return item.service === service && item.identifier === field.value; });
+            var box = document.createElement('div'); box.className = 'xrow verification-row';
+            var detail = document.createElement('div'); add(detail, field.field + ': ' + field.value, 'v'); add(detail, field.source_file, 'k'); box.appendChild(detail);
+            var provider = document.createElement('div');
+            if (check) {
+              var record = check.record || {};
+              add(provider, record.legal_name || record.enterprise_name || String(check.status || 'Provider response').replace(/_/g, ' '), 'v');
+              add(provider, (check.source || 'Configured provider') + ' · ' + (check.environment || 'Unknown environment'), 'k');
+              add(provider, check.entity_match === true ? 'Registered name matches bidder' : check.entity_match === false ? 'Registered name does not match bidder' : 'Entity name was not checked', check.entity_match === false ? 'k mismatch' : 'k');
+            } else {
+              add(provider, service ? 'No provider response' : 'No connector for this identifier type', 'v');
+              add(provider, verification.overall === 'NOT_CONFIGURED' ? 'Verification provider is not configured' : 'Retained as submitted evidence only', 'k');
+            }
+            box.appendChild(provider);
+            var badgeInfo = verificationBadge(check); add(box, badgeInfo.text, badgeInfo.klass); fieldsList.appendChild(box);
+          });
+        }
+        heading(verificationList, 'Verification provider');
+        if (verification.overall === 'NOT_CONFIGURED' || !Object.keys(verification).length) {
+          var notice = document.createElement('div'); notice.className = 'verification-notice';
+          add(notice, 'Source verification is not configured', 'v');
+          add(notice, verification.message || 'The extracted values are submitted evidence only and have not been checked against an external registry.', 'k');
+          verificationList.appendChild(notice);
+        } else {
+          row(verificationList, 'Provider', (verification.source || 'Configured provider') + ' · ' + (verification.environment || 'Unknown environment'));
+          row(verificationList, 'Authority', verification.authoritative === true ? 'Authoritative source' : 'Demo or non-authoritative source', verification.authoritative === true ? 'v yes' : 'v no');
+          row(verificationList, 'Checks completed', String((verification.summary || {}).checks || 0));
+          row(verificationList, 'Authoritatively verified', String((verification.summary || {}).verified || 0), (verification.summary || {}).verified ? 'v yes' : 'v');
+          checks.filter(function (check) { return check.service === 'BLACKLIST'; }).forEach(function (check) {
+            var box = document.createElement('div'); box.className = 'xrow verification-row';
+            var detail = document.createElement('div'); add(detail, 'Blacklist: ' + check.identifier, 'v'); add(detail, check.source || 'Configured provider', 'k'); box.appendChild(detail);
+            var provider = document.createElement('div'); add(provider, String(check.status || 'UNKNOWN').replace(/_/g, ' '), 'v'); add(provider, check.authoritative === true ? 'Authoritative result' : 'Demo result — officer review required', 'k'); box.appendChild(provider);
+            var badgeInfo = verificationBadge(check); add(box, badgeInfo.text, badgeInfo.klass); verificationList.appendChild(box);
+          });
+        }
         if ((report.missing || []).length) { heading(missingList, 'Missing or review-needed evidence'); report.missing.forEach(function (item) { var box = document.createElement('div'); box.className = 'xrow'; var detail = document.createElement('div'); add(detail, item.label, 'v'); add(detail, item.required ? 'Required evidence' : 'Optional evidence', 'k'); if ((item.requirements || []).length) add(detail, item.requirements.join('; '), 'k'); box.appendChild(detail); var badge = document.createElement('span'); add(badge, item.possible_match ? 'Review' : 'Missing', 'bdg alert'); box.appendChild(badge); missingList.appendChild(box); }); }
         if ((decision.eligibility_checks || []).length) {
           heading(findingsList, 'Criterion-level validation');
@@ -271,12 +344,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
           });
         }
         if ((data.findings || []).length) { heading(findingsList, 'Exceptions and explanations'); data.findings.forEach(function (finding) { var severity = String(finding.severity || '').toLowerCase(); var box = document.createElement('div'); box.className = 'find ' + (severity === 'high' || severity === 'critical' ? 'high' : 'medium'); var detail = document.createElement('div'); var name = document.createElement('h4'); name.textContent = finding.title; var explanation = document.createElement('p'); explanation.textContent = finding.explanation; detail.appendChild(name); detail.appendChild(explanation); box.appendChild(detail); findingsList.appendChild(box); }); }
-        try { localStorage.setItem('pramaan.liveAnalysis', JSON.stringify(data)); } catch (_) {}
+        try { localStorage.setItem('trust-setu.liveAnalysis', JSON.stringify(data)); } catch (_) {}
       }
       function scenarioResult(data) {
         var decision = data.decision || {}; var counts = decision.counts || {}; var score = decision.score || {};
         panel.hidden = false; title.textContent = 'Scenario compliance result'; status.textContent = decision.bid_responsiveness || 'COMPLETE';
-        clear(summary); clear(requirementsList); clear(documentsList); clear(fieldsList); clear(missingList); clear(findingsList);
+        clear(summary); clear(requirementsList); clear(documentsList); clear(fieldsList); clear(verificationList); clear(missingList); clear(findingsList);
         row(summary, 'Bidder', (data.bidder || {}).legal_name || 'Structured scenario');
         row(summary, 'Compliance score', String(score.percentage || 0) + '%', decision.bid_responsiveness === 'RESPONSIVE' ? 'v yes' : 'v no');
         row(summary, 'Documents submitted', String(counts.documents_submitted || 0) + ' / ' + String(counts.documents_total || 0));
@@ -305,7 +378,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
         }
         var comparison = data.expected_comparison || {};
         if (comparison.available) row(fieldsList, 'Acceptance fixture', comparison.all_matched ? 'Computed result matches expected outcome' : 'Computed result differs from expected outcome', comparison.all_matched ? 'v yes' : 'v no');
-        try { localStorage.setItem('pramaan.scenarioAnalysis', JSON.stringify(data)); } catch (_) {}
+        try { localStorage.setItem('trust-setu.scenarioAnalysis', JSON.stringify(data)); } catch (_) {}
       }
       document.getElementById('pickTenderBtn').addEventListener('click', function () { tenderInput.click(); });
       document.getElementById('pickBidderBtn').addEventListener('click', function () { bidderInput.click(); });
@@ -332,6 +405,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
         if (runPipeline) {
           endpoint = '/api/compliance/pipeline'; form.append('submission', bidderFile); form.append('use_ocr', 'true');
           if (reviewedRequirements) form.append('requirements', JSON.stringify({ requirements: reviewedRequirements }));
+          if (bidderNameInput.value.trim()) form.append('bidder_name', bidderNameInput.value.trim());
         }
         fetch(api.replace(/\/$/, '') + endpoint, { method: 'POST', body: form })
           .then(function (response) { return response.json().then(function (data) { if (!response.ok) throw new Error(data.detail || 'Analysis failed.'); return data; }); })
@@ -344,6 +418,21 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
   </script>
 
   <style is:global>
+    .bidder-context{margin-top:14px; padding:14px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--surface); text-align:left;}
+    .bidder-context label{display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13px; font-weight:650; color:var(--ink);}
+    .bidder-context label span{font-family:var(--mono); font-size:9.5px; font-weight:500; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.06em;}
+    .bidder-context input{width:100%; min-height:42px; margin-top:8px; padding:9px 11px; border:1px solid var(--line-strong); border-radius:var(--r-sm); background:var(--paper-raised); color:var(--ink); font:inherit; font-size:14px;}
+    .bidder-context input:focus{outline:2px solid var(--seal); outline-offset:2px; border-color:var(--seal);}
+    .bidder-context p{margin:7px 0 0; font-size:12px; line-height:1.45; color:var(--ink-soft);}
+    .verification-notice{display:flex; flex-direction:column; gap:4px; padding:14px; border-left:3px solid var(--flag); background:var(--flag-soft);}
+    .verification-notice .v{font-size:13.5px; font-weight:650; color:var(--ink);}
+    .verification-notice .k{font-size:12px; line-height:1.5; color:var(--ink-soft);}
+    .verification-columns{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 104px; gap:14px; padding:8px 14px; border-bottom:1px solid var(--line); background:var(--paper-raised); font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted);}
+    .verification-columns span:last-child{text-align:right;}
+    .verification-row > div > .v,.verification-row > div > .k{display:block;}
+    .verification-row > div > .k{margin-top:4px; line-height:1.4;}
+    .verification-row > div > .k.mismatch{color:var(--alert);}
+    .verification-row > .bdg{justify-self:end; text-align:center;}
     #requirementsList{padding:0 0 14px; overflow:visible; background:var(--paper-raised);}
     .req-toolbar{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 18px; border-bottom:1px solid var(--line); background:var(--surface);}
     .req-toolbar-title{display:block; font-size:15px; font-weight:650; color:var(--ink);}
@@ -395,6 +484,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
     .req-toggle input:focus-visible + .req-toggle-track{outline:2px solid var(--seal); outline-offset:2px;}
     .req-toggle-label{font-size:11px; color:var(--ink-soft);}
     @media (max-width:720px){
+      .verification-columns{display:none;}
       .req-toolbar{align-items:flex-start;}
       .req-group-head{grid-template-columns:32px minmax(0,1fr);}
       .req-group-actions{grid-column:1 / -1; justify-content:space-between; padding-left:44px;}
