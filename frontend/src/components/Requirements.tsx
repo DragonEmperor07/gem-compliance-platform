@@ -30,12 +30,13 @@ function savedRequiredOverrides(record: CaseRecord): Record<string, boolean> {
   return overrides;
 }
 
-export default function Requirements({ record, busy, onAssess, onRetry, openTender }: { record: CaseRecord; busy: boolean; onAssess: (submission: File, selected: RequirementsPayload, exclusions: string[], note: string) => void; onRetry: () => void; openTender: (page?: number) => void }) {
+export default function Requirements({ record, busy, onAssess, onRetry, openTender }: { record: CaseRecord; busy: boolean; onAssess: (submission: File, selected: RequirementsPayload, exclusions: string[], note: string) => void; onRetry: (tender?: File) => void; openTender: (page?: number) => void }) {
   const [exclusions, setExclusions] = useState<string[]>(record.exclusions || []);
   const [requiredOverrides, setRequiredOverrides] = useState<Record<string, boolean>>(() => savedRequiredOverrides(record));
   const [confirmed, setConfirmed] = useState(false);
   const [note, setNote] = useState('');
   const [submission, setSubmission] = useState(record.submissionFile);
+  const [replacementTender, setReplacementTender] = useState(record.tenderFile);
   const toggle = (id: string) => { setConfirmed(false); setExclusions(old => old.includes(id) ? old.filter(x => x !== id) : [...old, id]); };
   const setRequired = (id: string, required: boolean, original: boolean) => {
     setConfirmed(false);
@@ -46,7 +47,7 @@ export default function Requirements({ record, busy, onAssess, onRetry, openTend
       return next;
     });
   };
-  if (!record.requirements) return <div className="paper-panel extraction-retry"><FileText size={34} strokeWidth={1.2} /><h2>Read the tender requirements</h2><p>Your case has been saved. Start or retry extraction to prepare the review checklist.</p><button className="button primary" disabled={busy} onClick={onRetry}>Read tender<ArrowRight size={15} /></button></div>;
+  if (!record.requirements) return <div className="paper-panel extraction-retry"><FileText size={34} strokeWidth={1.2} /><h2>Read the tender requirements</h2><p>Your case has been saved. You can replace the PDF, then retry extraction to prepare the review checklist.</p><FileDrop label="Tender PDF" accept=".pdf" file={replacementTender} onChange={setReplacementTender} /><button className="button primary" disabled={busy || !replacementTender} onClick={() => onRetry(replacementTender)}>Read tender<ArrowRight size={15} /></button></div>;
   const payload = reviewedPayload(record.requirements, exclusions, requiredOverrides);
   const count = payload.requirements.reduce((n, r) => n + (r.sub_requirements.length || 1), 0);
   const requiredCount = payload.requirements.reduce((n, r) => n + (r.mandatory ? (r.sub_requirements.length ? r.sub_requirements.filter(s => s.mandatory).length : 1) : 0), 0);

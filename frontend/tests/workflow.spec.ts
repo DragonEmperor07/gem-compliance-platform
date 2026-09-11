@@ -27,6 +27,7 @@ test('real tender and bidder assessment preserve evidence and a reasoned officer
   const browserErrors: string[] = [];
   page.on('pageerror', error => browserErrors.push(error.message));
   await page.goto('/');
+  await page.screenshot({ path: 'test-results/queue-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'New case', exact: true }).click();
   await page.getByLabel('Tender title', { exact: true }).fill('Office equipment procurement');
   await page.getByLabel('Tender reference', { exact: true }).fill('TS-E2E-2026-001');
@@ -34,6 +35,7 @@ test('real tender and bidder assessment preserve evidence and a reasoned officer
   await page.getByLabel('Closing date (optional)', { exact: true }).fill('2026-10-15');
   await page.getByLabel('Tender PDF', { exact: true }).setInputFiles(files.tender);
   await page.getByLabel('Bidder submission (ZIP, optional)', { exact: true }).setInputFiles(files.submission);
+  await page.screenshot({ path: 'test-results/intake-desktop.png', fullPage: true });
 
   // Observe the actual network requests; no route interception or API mocks.
   const requirementsResponse = page.waitForResponse(response =>
@@ -47,6 +49,7 @@ test('real tender and bidder assessment preserve evidence and a reasoned officer
   expect(['ollama', 'heuristic']).toContain(extraction.extraction_method);
 
   await expect(page.getByRole('heading', { name: 'Review tender requirements', exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/requirements-desktop.png', fullPage: true });
   const assess = page.getByRole('button', { name: 'Assess bidder', exact: true });
   await expect(assess).toBeDisabled();
   await page.getByLabel('I have reviewed the included requirements and their applicability.', { exact: true }).check();
@@ -60,6 +63,7 @@ test('real tender and bidder assessment preserve evidence and a reasoned officer
   const assessment = await assessmentResponse.json();
   expect(assessment.documents).toHaveLength(4);
   expect(assessment.decision.document_checks.length).toBeGreaterThan(0);
+  expect(assessment.decision.eligibility_checks.some((check: { state: string }) => check.state === 'fail')).toBeTruthy();
   expect(assessment.government_verification).toHaveProperty('authoritative');
 
   await expect(page.getByRole('heading', { name: 'Evidence review', exact: true })).toBeVisible();
@@ -67,8 +71,10 @@ test('real tender and bidder assessment preserve evidence and a reasoned officer
   // Provider configuration varies by developer environment. If the backend
   // cannot claim authority, the browser must keep that uncertainty visible.
   if (!assessment.government_verification.authoritative) {
-    await expect(page.getByText(/not configured|non.authoritative|not authoritative|unverified/i).first()).toBeVisible();
+    await expect(page.getByRole('main').getByText(/not configured|non.authoritative|not authoritative|unverified/i).first()).toBeVisible();
   }
+  await page.getByRole('heading', { level: 1 }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/assessment-desktop.png', fullPage: true });
 
   await page.getByRole('button', { name: 'Officer decision', exact: true }).click();
   await page.getByLabel('Decision', { exact: true }).selectOption({ label: 'Request clarification' });
@@ -78,13 +84,14 @@ test('real tender and bidder assessment preserve evidence and a reasoned officer
   const reason = 'Request clarification of the annual turnover evidence and confirm registry status with an authoritative source.';
   await page.getByLabel('Reason for decision', { exact: true }).fill(reason);
   await record.click();
-  await expect(page.getByText(reason, { exact: true })).toBeVisible();
+  await expect(page.getByRole('main').getByText(reason, { exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/decision-desktop.png', fullPage: true });
 
   // The backend is stateless. The locally recorded decision must survive
   // reload and the export must retain the original backend provenance.
   await page.reload();
   await page.getByRole('button', { name: 'Officer decision', exact: true }).click();
-  await expect(page.getByText(reason, { exact: true })).toBeVisible();
+  await expect(page.getByRole('main').getByText(reason, { exact: true })).toBeVisible();
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export evidence JSON', exact: true }).click();
   const download = await downloadPromise;
@@ -97,6 +104,15 @@ test('real tender and bidder assessment preserve evidence and a reasoned officer
   expect(JSON.stringify(exported)).toContain('authoritative');
   expect(JSON.stringify(exported)).toContain('extraction_method');
   expect(JSON.stringify(exported)).toContain('source_page');
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.print-only')).toBeVisible();
+  await expect(page.locator('.app-shell')).toBeHidden();
+  await page.screenshot({ path: 'test-results/print-record.png', fullPage: false });
+  await page.emulateMedia({ media: 'screen' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Evidence review', exact: true }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.screenshot({ path: 'test-results/assessment-mobile.png', fullPage: true });
   expect(browserErrors).toEqual([]);
 });
 
@@ -104,8 +120,30 @@ test('queue and case creation fit a narrow mobile viewport', async ({ page }) =>
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'New case', exact: true })).toBeVisible();
+  await page.screenshot({ path: 'test-results/queue-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.getByRole('button', { name: 'New case', exact: true }).click();
   await expect(page.getByLabel('Tender title', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test('a rejected PDF can be replaced and retried in the same saved case', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New case', exact: true }).click();
+  await page.getByLabel('Tender title', { exact: true }).fill('File recovery test');
+  await page.getByLabel('Tender reference', { exact: true }).fill('TS-RECOVERY-001');
+  await page.getByLabel('Bidder name', { exact: true }).fill('Synthetic Recovery Bidder');
+  await page.getByLabel('Tender PDF', { exact: true }).setInputFiles({ name: 'invalid.pdf', mimeType: 'application/pdf', buffer: Buffer.from('This is not a PDF document.') });
+  const rejected = page.waitForResponse(response => response.url().endsWith('/tenders/requirements'));
+  await page.getByRole('button', { name: 'Create & read tender', exact: true }).click();
+  expect((await rejected).status()).toBe(422);
+  await expect(page.getByRole('alert')).toContainText('valid PDF signature');
+  const caseUrl = page.url();
+  await page.getByLabel('Tender PDF', { exact: true }).setInputFiles(files.tender);
+  await page.getByRole('button', { name: 'Read tender', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Review tender requirements', exact: true })).toBeVisible();
+  expect(page.url()).toBe(caseUrl);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Review tender requirements', exact: true })).toBeVisible();
 });

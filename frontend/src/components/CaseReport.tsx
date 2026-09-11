@@ -9,7 +9,7 @@ function recordedTime(value?: string | null) {
 }
 
 function providerTime(check: GovernmentCheck) {
-  const value = check.checked_at ?? check.record.checked_at ?? check.record.verified_at;
+  const value = [check.checked_at, check.record.checked_at, check.record.verified_at].find(value => typeof value === 'string' && value.trim());
   return recordedTime(typeof value === 'string' ? value : null);
 }
 
