@@ -118,11 +118,11 @@ export const passages: Passage[] = [
   {
     id: 'tender',
     title: 'Tender GEM/2026/B/4471',
-    source: 'Tender record',
-    href: 'app/tender',
+    source: 'Console',
+    href: 'app',
     answer:
       'GEM/2026/B/4471 — Supply of laboratory equipment, ₹ 4.82 Cr, 12 bidders, all 12 verified. It opened on 18 Aug 2026 and closes in 2 days.',
-    text: 'Category: scientific instruments with Class-I local supplier preference. Bid comparison across all twelve bidders is on the tender board.',
+    text: 'Category: scientific instruments with Class-I local supplier preference. It is listed under Closing soonest on the console overview.',
     keys: ['tender', 'which tender', 'value', 'closes', 'tender close', 'closing', 'deadline', 'lab equipment', 'laboratory', 'bidders', 'how many bids'],
   },
   {
@@ -372,53 +372,6 @@ export const passages: Passage[] = [
       'Three bidders await a decision: Nova Labtech (78, clause 7.2), Deccan Analytical (71, OEM authorisation expired) and Chandra Lab Solutions (69, turnover below the tender floor). Two more are flagged — Orion Supplies (38) and Vindhya Scientific (52).',
     text: 'Sixteen bidders are in the queue across four tenders: 3 awaiting a decision, 2 flagged, 3 in review and 8 qualified today, across 1,026 checks. Kaveri Instruments, Tapti Instruments and Sutlej Scientific are the three in review.',
     keys: ['queue', 'pending', 'awaiting', 'bidders are flagged', 'which bidders', 'in review', 'workload', 'today', 'how many bidders', 'to review'],
-  },
-  {
-    id: 'orion',
-    title: 'Orion Supplies Company',
-    source: 'Bidder record',
-    href: 'app/tender',
-    answer:
-      'Orion Supplies scores 38 with High risk and is flagged — a debarment record was found in a state register. 19 of 38 checks passed, 9 flags.',
-    text: 'Kanpur UP, private limited, large enterprise. The lowest scoring bidder on this tender.',
-    keys: ['orion', 'worst', 'lowest', 'high risk', 'debarred bidder', 'flagged'],
-  },
-  {
-    id: 'kaveri',
-    title: 'Kaveri Instruments & Company',
-    source: 'Bidder record',
-    href: 'app/tender',
-    answer: 'Kaveri Instruments scores 64, Medium risk, in review — EPFO contributions are in arrears. 29 of 38 checks passed.',
-    text: 'Coimbatore TN, proprietorship, MSME Small.',
-    keys: ['kaveri', 'arrears', 'in review'],
-  },
-  {
-    id: 'saraswati',
-    title: 'Saraswati Industrial Works',
-    source: 'Bidder record',
-    href: 'app/tender',
-    answer: 'Saraswati Industrial Works is the strongest bidder — 96 out of 100, Low risk, qualified, 37 of 38 checks passed.',
-    text: 'Nashik MH, private limited, MSME Small. One item awaited officer review before qualification.',
-    keys: ['saraswati', 'best', 'highest', 'top bidder', 'strongest', '96'],
-  },
-  {
-    id: 'meridian',
-    title: 'Meridian Scientific Instruments',
-    source: 'Bidder record',
-    href: 'app/tender',
-    answer: 'Meridian Scientific scores 91, Low risk, qualified, with 36 of 38 checks passed and 2 flags.',
-    text: 'Pune MH, partnership, MSME Micro.',
-    keys: ['meridian', 'partnership', 'micro'],
-  },
-  {
-    id: 'compare',
-    title: 'Bidder ranking on this tender',
-    source: 'Tender board',
-    href: 'app/tender',
-    answer:
-      'Twelve bidders, mean score 77. The top of the field is Saraswati 96, Prayag 93, Meridian 91, Konark 89; the bottom is Sharda 55 and Orion 38. Ranking is a review convenience — the qualifying clauses decide, not the order.',
-    text: 'Seven are qualified, one (Nova Labtech) awaits a decision, two are in review (Kaveri, Betwa) and two are flagged (Sharda, Orion). The full field with sort and filter is on the tender board.',
-    keys: ['compare', 'ranking', 'rank', 'order', 'which bidder', 'best score', 'shortlist', 'l1'],
   },
 
   /* ---------------- portals ---------------- */

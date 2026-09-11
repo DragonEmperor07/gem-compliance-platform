@@ -83,7 +83,6 @@ const downIcon = '<path d="M12 5.5v13M7.5 14 12 18.5 16.5 14"/>';
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={downIcon}></svg>
         Export queue
       </button>
-      <a class="btn-sm solid" href={`${base}app/tender`}>Open tender board</a>
     </div>
   </div>
 
@@ -244,14 +243,13 @@ const downIcon = '<path d="M12 5.5v13M7.5 14 12 18.5 16.5 14"/>';
       <div class="panel">
         <div class="panel-head">
           <h3>Closing soonest</h3>
-          <a href={`${base}app/tender`} class="note" style="text-decoration:none;">All tenders</a>
         </div>
         <div class="mini">
           {closing.map((t) => {
             const days = parseInt(t.closes, 10);
             const pct = Math.round((t.verified / t.bidders) * 100);
             return (
-              <a class="mrow" href={`${base}app/tender`}>
+              <div class="mrow">
                 <span class="t">{t.title}</span>
                 <span class={`r${days <= 2 ? ' warn' : ''}`}>{t.closes}</span>
                 <span class="s">
@@ -264,7 +262,7 @@ const downIcon = '<path d="M12 5.5v13M7.5 14 12 18.5 16.5 14"/>';
                     <i style={`--w:${pct}%`}></i>
                   </span>
                 </span>
-              </a>
+              </div>
             );
           })}
         </div>

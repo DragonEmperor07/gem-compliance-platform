@@ -25,10 +25,10 @@ const checkCount = groups.reduce((n, g) => n + g.checks.length, 0);
 
 <AppLayout
   title={`${focus.name} — Trust Setu`}
-  active="tenders"
+  active="overview"
   crumbs={[
-    { label: 'Tenders', href: `${base}app/tender` },
-    { label: tender.id, href: `${base}app/tender` },
+    { label: 'Queue', href: `${base}app` },
+    { label: tender.id },
     { label: focus.seq },
   ]}
 >
