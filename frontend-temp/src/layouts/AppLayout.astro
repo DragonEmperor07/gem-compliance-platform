@@ -167,9 +167,8 @@ const nav = [
     <div class="ast-body" id="astBody" role="log" aria-live="polite">
       <div class="msg bot">
         <div class="b">
-          Ask about a bidder, a check, a tender clause or how a source was reached. Every answer is
-          retrieved from the record on these screens and cites what it used — if the record does not
-          cover it, I will say so rather than guess.
+          Ask about a flagged document, tender requirement, source check, or evaluation result. I’ll
+          answer from the current record and cite the evidence used.
         </div>
       </div>
       <div class="ast-sugs" id="astSugs">
@@ -184,7 +183,7 @@ const nav = [
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12.5 6l6 6-6 6"/></svg>
         </button>
       </form>
-      <p class="ast-note">Retrieval over {passages.length} passages · demo data · no live portal is queried</p>
+      <p class="ast-note" id="astNote">Retrieval over {passages.length} passages · no live portal is queried</p>
     </div>
   </section>
 
@@ -312,10 +311,36 @@ const nav = [
       var input = document.getElementById('astText');
       var sugs = document.getElementById('astSugs');
       var corpusEl = document.getElementById('astCorpus');
+      var note = document.getElementById('astNote');
       if (!panel || !openBtn || !body || !form || !input || !corpusEl) return;
 
       var BASE = panel.getAttribute('data-base') || '/';
       var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var CHAT_HISTORY_KEY = 'trust-setu.assistantHistory';
+      var CHAT_OPEN_KEY = 'trust-setu.assistantOpen';
+
+      try {
+        var savedHistory = window.localStorage.getItem(CHAT_HISTORY_KEY);
+        if (savedHistory) {
+          body.innerHTML = savedHistory;
+          sugs = body.querySelector('#astSugs');
+        }
+      } catch (_) {}
+
+      var saveHistoryTimer = null;
+      function persistChatNow() {
+        try { window.localStorage.setItem(CHAT_HISTORY_KEY, body.innerHTML); } catch (_) {}
+      }
+      function saveChatHistory() {
+        clearTimeout(saveHistoryTimer);
+        saveHistoryTimer = setTimeout(persistChatNow, 60);
+      }
+      new MutationObserver(saveChatHistory).observe(body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+      window.addEventListener('pagehide', persistChatNow);
 
       var DOCS = [];
       try { DOCS = JSON.parse(corpusEl.textContent) || []; } catch (e) { DOCS = []; }
@@ -354,18 +379,24 @@ const nav = [
       }
 
       /* ---------------- index ---------------- */
-      var N = DOCS.length, df = {}, avg = 0;
-      var index = DOCS.map(function (d) {
-        var keys = (d.keys || []).join(' ');
-        /* title and keywords count twice — they are what the passage is "about" */
-        var blob = [d.title, d.title, d.answer, d.text, keys, keys, d.source].join(' ');
-        var t = toks(blob), tf = {}, w;
-        for (var i = 0; i < t.length; i++) tf[t[i]] = (tf[t[i]] || 0) + 1;
-        for (w in tf) if (Object.prototype.hasOwnProperty.call(tf, w)) df[w] = (df[w] || 0) + 1;
-        avg += t.length;
-        return { d: d, tf: tf, len: t.length, hay: ' ' + t.join(' ') + ' ' };
-      });
-      avg = avg / (N || 1);
+      var N = 0, df = {}, avg = 0, index = [];
+
+      function rebuildIndex() {
+        N = DOCS.length; df = {}; avg = 0;
+        index = DOCS.map(function (d) {
+          var keys = (d.keys || []).join(' ');
+          /* title and keywords count twice — they are what the passage is "about" */
+          var blob = [d.title, d.title, d.answer, d.text, keys, keys, d.source].join(' ');
+          var t = toks(blob), tf = {}, w;
+          for (var i = 0; i < t.length; i++) tf[t[i]] = (tf[t[i]] || 0) + 1;
+          for (w in tf) if (Object.prototype.hasOwnProperty.call(tf, w)) df[w] = (df[w] || 0) + 1;
+          avg += t.length;
+          return { d: d, tf: tf, len: t.length, hay: ' ' + t.join(' ') + ' ' };
+        });
+        avg = avg / (N || 1);
+        if (note) note.textContent = 'Retrieval over ' + N + ' passages · answers from the current record';
+      }
+      rebuildIndex();
 
       function search(q) {
         var qt = toks(q);
@@ -442,6 +473,119 @@ const nav = [
         scrollDown();
         build(m, b);
         return m;
+      }
+
+      function evidenceFiles(evidence) {
+        evidence = evidence || {};
+        var files = [];
+        if (evidence.file) files.push(evidence.file);
+        if (Array.isArray(evidence.files)) files = files.concat(evidence.files);
+        if (evidence.possible_match && evidence.possible_match.file) files.push(evidence.possible_match.file);
+        return files.filter(function (file, index, all) { return file && all.indexOf(file) === index; });
+      }
+
+      function flagGroups(data) {
+        var findings = (data && (data.findings || (data.decision || {}).findings)) || [];
+        var checklist = (data && data.checklist && data.checklist.documents) || [];
+        var groups = {};
+
+        findings.forEach(function (finding) {
+          var id = String(finding.id || finding.title || 'flag');
+          var root = id.indexOf('CROSS::') === 0 || id.indexOf('EXTERNAL::') === 0
+            ? id
+            : id.split('::')[0];
+          var checklistItem = checklist.find(function (item) { return item.id === root; });
+          var evidence = finding.evidence || {};
+          var pages = [];
+          if (evidence.source_page) pages.push(evidence.source_page);
+          if (checklistItem) {
+            (checklistItem.criteria || []).forEach(function (criterion) {
+              if (criterion.source_page) pages.push(criterion.source_page);
+            });
+          }
+          var key = root;
+          if (!groups[key]) {
+            groups[key] = {
+              id: root,
+              label: checklistItem ? checklistItem.label : (finding.title || 'Compliance check'),
+              files: [], pages: [], issues: [], severity: 'MEDIUM'
+            };
+          }
+          var group = groups[key];
+          group.files = group.files.concat(evidenceFiles(evidence));
+          group.pages = group.pages.concat(pages);
+          group.issues.push({ state: finding.state || 'review', reason: finding.explanation || 'Officer review is required.' });
+          if (String(finding.severity).toUpperCase() === 'CRITICAL' || finding.state === 'fail' || finding.state === 'missing') group.severity = 'CRITICAL';
+        });
+
+        return Object.keys(groups).map(function (key) {
+          var group = groups[key];
+          group.files = group.files.filter(function (value, index, all) { return all.indexOf(value) === index; });
+          group.pages = group.pages.filter(function (value, index, all) { return value && all.indexOf(value) === index; }).sort(function (a, b) { return a - b; });
+          group.issues = group.issues.filter(function (issue, index, all) {
+            return all.findIndex(function (candidate) { return candidate.state === issue.state && candidate.reason === issue.reason; }) === index;
+          });
+          return group;
+        }).sort(function (a, b) { return (a.severity === 'CRITICAL' ? 0 : 1) - (b.severity === 'CRITICAL' ? 0 : 1); });
+      }
+
+      function addLivePassages(data, groups) {
+        DOCS = DOCS.filter(function (doc) { return String(doc.id || '').indexOf('live-flag-') !== 0; });
+        groups.forEach(function (group, index) {
+          var documentText = group.files.length ? group.files.join(', ') : 'No submitted file matched this required evidence';
+          var pageText = group.pages.length ? 'Tender page ' + group.pages.join(', ') : 'No tender page reference was extracted';
+          var reasons = group.issues.map(function (issue) { return issue.reason; }).join(' ');
+          DOCS.push({
+            id: 'live-flag-' + index,
+            title: group.label,
+            source: pageText,
+            href: 'app/extract',
+            answer: group.label + ' was flagged. ' + reasons,
+            text: 'Bidder evidence: ' + documentText + '. ' + pageText + '.',
+            keys: ['flagged document', 'why flagged', 'current analysis', group.label.toLowerCase()].concat(group.files)
+          });
+        });
+        rebuildIndex();
+      }
+
+      function showFlagSummary(data) {
+        var groups = flagGroups(data);
+        addLivePassages(data, groups);
+        setOpen(true);
+        if (sugs && sugs.parentNode) { sugs.remove(); sugs = null; }
+
+        botMessage(function (m, b) {
+          b.appendChild(node('span', 'lead', groups.length
+            ? groups.length + ' document or verification ' + (groups.length === 1 ? 'item was' : 'items were') + ' flagged.'
+            : 'No documents were flagged by the completed evaluation.'));
+          b.appendChild(node('div', 'more', groups.length
+            ? 'Here is what was flagged, why, and the supporting tender-page reference.'
+            : 'All automated checks passed. The procurement officer still makes the final decision.'));
+
+          groups.forEach(function (group) {
+            var card = node('section', 'ast-flag ' + (group.severity === 'CRITICAL' ? 'critical' : 'review'));
+            var head = node('div', 'ast-flag-head');
+            head.appendChild(node('strong', null, group.label));
+            head.appendChild(node('span', null, group.severity === 'CRITICAL' ? 'Flagged' : 'Review'));
+            card.appendChild(head);
+            card.appendChild(node('div', 'ast-flag-file', group.files.length
+              ? 'Bidder file: ' + group.files.join(', ')
+              : 'Expected evidence: ' + group.label + ' — no matching bidder file'));
+            group.issues.forEach(function (issue) {
+              card.appendChild(node('p', null, issue.state.toUpperCase() + ': ' + issue.reason));
+            });
+            card.appendChild(node('div', 'ast-flag-page', group.pages.length
+              ? 'Tender reference: page ' + group.pages.join(', ')
+              : 'Tender reference: page was not captured during extraction'));
+            b.appendChild(card);
+          });
+
+          var meta = node('div', 'meta');
+          meta.appendChild(node('i'));
+          meta.appendChild(node('span', null, 'Generated from the completed compliance pipeline'));
+          m.appendChild(meta);
+          scrollDown();
+        });
       }
 
       function thinking() {
@@ -539,6 +683,7 @@ const nav = [
         panel.classList.toggle('open', on);
         openBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
         openBtn.hidden = on;
+        try { window.localStorage.setItem(CHAT_OPEN_KEY, on ? 'true' : 'false'); } catch (_) {}
         if (on) { setTimeout(function () { input.focus(); }, 70); }
         else if (opened) { openBtn.focus(); }
         opened = on;
@@ -579,6 +724,22 @@ const nav = [
         var s = e.target.closest ? e.target.closest('.sug') : null;
         if (s) ask(s.textContent);
       });
+
+      window.addEventListener('trust-setu:analysis-complete', function (event) {
+        if (event.detail) showFlagSummary(event.detail);
+      });
+
+      try {
+        var savedAnalysis = window.localStorage.getItem('trust-setu.liveAnalysis');
+        if (savedAnalysis) {
+          var savedData = JSON.parse(savedAnalysis);
+          addLivePassages(savedData, flagGroups(savedData));
+        }
+      } catch (_) {}
+
+      try {
+        if (window.localStorage.getItem(CHAT_OPEN_KEY) === 'true') setOpen(true);
+      } catch (_) {}
 
       /* anything on a page can open the assistant with a question ready */
       document.addEventListener('click', function (e) {

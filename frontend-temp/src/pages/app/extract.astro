@@ -345,6 +345,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'http://127.0.0.1:8000';
         }
         if ((data.findings || []).length) { heading(findingsList, 'Exceptions and explanations'); data.findings.forEach(function (finding) { var severity = String(finding.severity || '').toLowerCase(); var box = document.createElement('div'); box.className = 'find ' + (severity === 'high' || severity === 'critical' ? 'high' : 'medium'); var detail = document.createElement('div'); var name = document.createElement('h4'); name.textContent = finding.title; var explanation = document.createElement('p'); explanation.textContent = finding.explanation; detail.appendChild(name); detail.appendChild(explanation); box.appendChild(detail); findingsList.appendChild(box); }); }
         try { localStorage.setItem('trust-setu.liveAnalysis', JSON.stringify(data)); } catch (_) {}
+        window.dispatchEvent(new CustomEvent('trust-setu:analysis-complete', { detail: data }));
       }
       function scenarioResult(data) {
         var decision = data.decision || {}; var counts = decision.counts || {}; var score = decision.score || {};
