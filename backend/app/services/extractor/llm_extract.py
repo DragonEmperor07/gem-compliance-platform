@@ -1,5 +1,5 @@
-from ollama import chat
-from app.config import REQUIREMENT_MODEL
+from ollama import Client
+from app.config import OLLAMA_BASE_URL, OLLAMA_TIMEOUT_SECONDS, REQUIREMENT_MODEL
 from .req import RequirementExtraction
 
 
@@ -8,8 +8,9 @@ def extract_requirements(
     model: str = REQUIREMENT_MODEL,
 ) -> RequirementExtraction:
 
-    response = chat(
+    response = Client(host=OLLAMA_BASE_URL, timeout=OLLAMA_TIMEOUT_SECONDS).chat(
         model=model,
+        think=False,
         messages=[
             {
                 "role": "system",

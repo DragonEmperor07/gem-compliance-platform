@@ -11,6 +11,9 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 REQUIREMENT_MODEL = os.getenv("REQUIREMENT_MODEL", "qwen3:8b")
+DOCUMENT_CLASSIFIER_MODEL = os.getenv("DOCUMENT_CLASSIFIER_MODEL", "phi3:mini")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+LLM_ENABLED = os.getenv("LLM_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
 GOVERNMENT_API_URL = os.getenv("GOVERNMENT_API_URL", "").strip()
 
 
@@ -53,3 +56,4 @@ MAX_NESTED_ZIP_DEPTH = _positive_int("MAX_NESTED_ZIP_DEPTH", 3)
 MAX_PDF_PAGES = _positive_int("MAX_PDF_PAGES", 500)
 UPLOAD_CHUNK_BYTES = _positive_int("UPLOAD_CHUNK_BYTES", MIB)
 GOVERNMENT_API_TIMEOUT_SECONDS = _positive_float("GOVERNMENT_API_TIMEOUT_SECONDS", 5.0)
+OLLAMA_TIMEOUT_SECONDS = _positive_float("OLLAMA_TIMEOUT_SECONDS", 90.0)

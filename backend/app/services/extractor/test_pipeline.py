@@ -180,6 +180,33 @@ class TestChecklistBuild(unittest.TestCase):
 
 class TestExtractionDiagnostics(unittest.TestCase):
 
+    def test_disabled_llm_uses_heuristics_without_calling_model(self):
+        with (
+            patch("app.services.extractor.api_pipeline.LLM_ENABLED", False),
+            patch("app.services.extractor.api_pipeline.extract_requirements") as extract,
+        ):
+            result = requirements_from_context(
+                "===== PAGE 1 =====\nBidder shall submit GST registration certificate."
+            )
+
+        extract.assert_not_called()
+        self.assertEqual(result.extraction_method, "heuristic")
+        self.assertEqual(result.fallback_reason, "disabled")
+
+    def test_llm_drafts_are_converted_to_api_requirements(self):
+        extraction = RequirementExtraction(
+            requirements=[requirement("PAN submission", ["PAN card"])]
+        )
+        with patch(
+            "app.services.extractor.api_pipeline.extract_requirements",
+            return_value=extraction,
+        ):
+            result = requirements_from_context("Bidder shall submit a PAN card.")
+
+        self.assertEqual(result.extraction_method, "ollama")
+        self.assertEqual(result.requirements[0].name, "PAN submission")
+        self.assertEqual(result.requirements[0].evidence_types, ["PAN card"])
+
     def test_known_model_failure_reports_heuristic_fallback(self):
         with patch(
             "app.services.extractor.api_pipeline.extract_requirements",
@@ -380,6 +407,16 @@ class TestDocumentClassifier(unittest.TestCase):
 
     def test_empty_document_is_unknown(self):
         result = classify_document("mystery.pdf", "", use_llm_fallback=False)
+        self.assertEqual(result.document_type, "UNKNOWN")
+
+    def test_disabled_llm_does_not_call_classifier_model(self):
+        with (
+            patch("app.services.extractor.document_classifier.LLM_ENABLED", False),
+            patch("app.services.extractor.document_classifier._ollama_classification") as classify,
+        ):
+            result = classify_document("mystery.pdf", "", use_llm_fallback=True)
+
+        classify.assert_not_called()
         self.assertEqual(result.document_type, "UNKNOWN")
 
 

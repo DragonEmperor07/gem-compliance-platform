@@ -3,6 +3,7 @@ import json
 import zipfile
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from app.schemas.compliance import ChecklistPayload, RequirementsPayload
 from app.config import (
@@ -76,7 +77,8 @@ async def tender_context_endpoint(tender: UploadFile = File(...)):
 @router.post("/tenders/requirements")
 async def requirements_endpoint(tender: UploadFile = File(...), model: str = Form(REQUIREMENT_MODEL)):
     try:
-        return requirements_from_tender(await _pdf(tender), model)
+        pdf = await _pdf(tender)
+        return await run_in_threadpool(requirements_from_tender, pdf, model)
     except HTTPException:
         raise
     except Exception as exc:

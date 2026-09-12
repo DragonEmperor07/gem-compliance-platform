@@ -130,10 +130,26 @@ cd ..
 An optional local Ollama model can improve tender requirement extraction. If it
 is unavailable, the backend uses its conservative rule-based fallback.
 
+The default development mode does not use Ollama. To enable local inference,
+install the runtime on macOS with `brew install ollama`, then start with
+`./dev.sh --llm`. That mode starts the service when needed and downloads
+`qwen3:8b` for requirement extraction and `phi3:mini` for uncertain document
+classification on first use. Override them with `REQUIREMENT_MODEL`,
+`DOCUMENT_CLASSIFIER_MODEL`, and `OLLAMA_BASE_URL` in `backend/.env`.
+Tender extraction falls back to the conservative rule-based extractor after
+`OLLAMA_TIMEOUT_SECONDS` (90 seconds by default) so a local model cannot hold a
+request indefinitely.
+
 ### Start both services
 
 ```bash
 ./dev.sh
+```
+
+To enable both configured local models:
+
+```bash
+./dev.sh --llm
 ```
 
 - Website: `http://127.0.0.1:5173`

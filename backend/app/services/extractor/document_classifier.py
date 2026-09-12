@@ -19,11 +19,12 @@ from pathlib import Path
 
 import requests
 from pydantic import BaseModel, Field
+from app.config import DOCUMENT_CLASSIFIER_MODEL, LLM_ENABLED, OLLAMA_BASE_URL
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "phi3:mini"
+OLLAMA_URL = f"{OLLAMA_BASE_URL}/api/generate"
+OLLAMA_MODEL = DOCUMENT_CLASSIFIER_MODEL
 OLLAMA_TIMEOUT = 120
 
 DOCUMENT_TYPES = [
@@ -376,7 +377,7 @@ def _ollama_classification(
                 "prompt": prompt,
                 "stream": False,
                 "format": "json",
-                "options": {"temperature": 0},
+                "options": {"temperature": 0, "num_predict": 256},
             },
             timeout=OLLAMA_TIMEOUT,
         )
@@ -441,7 +442,7 @@ def classify_document(
     if deterministic is not None and deterministic.classification_status == "CLASSIFIED":
         return deterministic
 
-    if not use_llm_fallback:
+    if not use_llm_fallback or not LLM_ENABLED:
         if deterministic is not None:
             return deterministic
         return DocumentClassification(

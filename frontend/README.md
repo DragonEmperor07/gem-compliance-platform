@@ -19,8 +19,14 @@ From the repository root, start both services:
 ./dev.sh
 ```
 
-This starts the backend on port 8000 and this frontend on port 5173. `Ctrl+C`
-stops both processes. Both ports must be free before using the combined script.
+This starts the backend on port 8000 and this frontend on port 5173 without local
+LLM inference. `Ctrl+C` stops both processes. To enable Ollama, run
+`./dev.sh --llm`; this ensures the configured requirement and document-
+classification models are downloaded. The first LLM run can take several minutes
+and requires multiple gigabytes of disk space. Install Ollama first with
+`brew install ollama` on macOS. Ports 5173 and 8000 must be free.
+Local requirement extraction is bounded by `OLLAMA_TIMEOUT_SECONDS` (90 seconds
+by default), after which the backend returns its conservative reviewable fallback.
 
 To run the services separately, start the API in one terminal from the repository root:
 

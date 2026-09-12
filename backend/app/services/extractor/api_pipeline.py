@@ -14,7 +14,7 @@ import httpx
 from ollama import ResponseError
 from pydantic import ValidationError
 
-from app.config import GOVERNMENT_API_TIMEOUT_SECONDS, GOVERNMENT_API_URL, REQUIREMENT_MODEL
+from app.config import GOVERNMENT_API_TIMEOUT_SECONDS, GOVERNMENT_API_URL, LLM_ENABLED, REQUIREMENT_MODEL
 from app.schemas.compliance import ChecklistPayload, Requirement, RequirementsPayload, SubRequirement
 
 from .bidder_zip import ExtractedDocument, ingest_zip
@@ -180,10 +180,20 @@ def _heuristic_requirements(context: str) -> RequirementsPayload:
 
 
 def requirements_from_context(context: str, model: str = REQUIREMENT_MODEL) -> RequirementsPayload:
+    if not LLM_ENABLED:
+        fallback = _heuristic_requirements(context)
+        return fallback.model_copy(update={
+            "extraction_method": "heuristic",
+            "fallback_reason": "disabled",
+            "warnings": [
+                "Local LLM extraction is disabled; conservative heuristic extraction was used."
+            ],
+        })
+
     try:
         extraction = extract_requirements(context, model)
         return RequirementsPayload(
-            requirements=extraction.requirements,
+            requirements=[requirement.model_dump() for requirement in extraction.requirements],
             extraction_method="ollama",
         )
     except (httpx.HTTPError, ResponseError, ValidationError, ConnectionError, TimeoutError) as exc:
