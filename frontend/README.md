@@ -1,17 +1,28 @@
 # Trust Setu — compliance workstation
 
-An independent React, TypeScript and Vite frontend for the existing FastAPI
+The primary React, TypeScript and Vite frontend for the existing FastAPI
 backend. Its home screen is a verification queue, followed by tender requirement
 review, bidder evidence, an officer decision and an exportable case record.
 The navy, paper and ink interface uses local fonts, compact document layouts and
-explicit source provenance. The existing `frontend-temp/` is independent and is
-not needed to run this application.
+explicit source provenance. `frontend-temp/` is retained as a legacy frontend
+and is not started by the root development script.
 
 ## Run locally
 
 Set up the Python environment and backend dependencies using
-[the backend instructions](../backend/README.md). From the repository root, start
-the existing API in one terminal:
+[the backend instructions](../backend/README.md), then install the frontend
+dependencies once with `npm install` from `frontend/`.
+
+From the repository root, start both services:
+
+```bash
+./dev.sh
+```
+
+This starts the backend on port 8000 and this frontend on port 5173. `Ctrl+C`
+stops both processes. Both ports must be free before using the combined script.
+
+To run the services separately, start the API in one terminal from the repository root:
 
 ```bash
 PYTHONPATH=backend backend/.venv/bin/python -m uvicorn app.main:app \

@@ -79,15 +79,17 @@ gem-compliance-platform/
 │           ├── criterion_engine.py     # shared decision and score engine
 │           ├── scenario_json.py        # structured JSON scenario adapter
 │           └── test_pipeline.py        # backend unit/integration tests
-└── frontend-temp/
-    ├── package.json                    # Astro scripts and dependencies
-    ├── .env.example                    # backend URL example
-    └── src/
-        ├── pages/app/extract.astro     # connected tender-analysis workflow
-        ├── pages/app/                  # remaining dashboard pages
-        ├── components/                 # shared UI components
-        ├── layouts/                    # shared layouts
-        └── styles/                     # application styling
+├── frontend/                          # primary React / TypeScript frontend
+│   ├── package.json                   # Vite scripts and dependencies
+│   ├── vite.config.ts                 # development server and backend proxy
+│   ├── .env.example                   # API proxy target example
+│   ├── tests/                         # live-backend browser tests
+│   └── src/
+│       ├── App.tsx                    # workstation and case workflow
+│       ├── components/                # queue, intake, evidence and reports
+│       ├── lib/                       # API, evidence and local case storage
+│       └── styles.css                 # application styling
+└── frontend-temp/                     # legacy Astro frontend; not started by dev.sh
 ```
 
 ## 4. API contract
@@ -119,7 +121,7 @@ cd /path/to/gem-compliance-platform
 python3 -m venv backend/.venv
 backend/.venv/bin/pip install -r backend/requirements.txt
 
-cd frontend-temp
+cd frontend
 npm install
 cp .env.example .env
 cd ..
@@ -134,9 +136,14 @@ is unavailable, the backend uses its conservative rule-based fallback.
 ./dev.sh
 ```
 
-- Website: `http://127.0.0.1:4321/app/extract`
+- Website: `http://127.0.0.1:5173`
 - API documentation: `http://127.0.0.1:8000/docs`
 - Stop both services: `Ctrl+C`
+
+`frontend/` is the primary frontend. The development server proxies API requests
+to port 8000. Cases and officer decisions are stored locally in the browser;
+the backend supplies the actual extraction and assessment results. The legacy
+`frontend-temp/` remains available but is not part of the default startup.
 
 ## 6. Verification before sharing a change
 
@@ -150,8 +157,9 @@ PYTHONPATH=backend backend/.venv/bin/python -m unittest discover -v \
 Build the frontend:
 
 ```bash
-cd frontend-temp
+cd frontend
 npm run build
+npm test
 ```
 
 A change is ready for review only when:
